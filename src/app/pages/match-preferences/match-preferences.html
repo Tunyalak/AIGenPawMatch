@@ -1,0 +1,137 @@
+<div class="preferences-container">
+  <!-- Header -->
+  <div class="header">
+    <button mat-icon-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Match Preferences</h1>
+    <button mat-icon-button (click)="resetPreferences()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="content">
+    <form [formGroup]="preferencesForm">
+
+      <!-- Age Range -->
+      <div class="preference-section">
+        <h3>Age Range</h3>
+        <div class="slider-container">
+          <label>{{ preferencesForm.get('ageMin')?.value }} - {{ preferencesForm.get('ageMax')?.value }} years</label>
+          <div class="dual-slider">
+            <mat-slider min="0" max="15" step="1" discrete>
+              <input matSliderStartThumb formControlName="ageMin">
+              <input matSliderEndThumb formControlName="ageMax">
+            </mat-slider>
+          </div>
+        </div>
+      </div>
+
+      <!-- Distance -->
+      <div class="preference-section">
+        <h3>Maximum Distance</h3>
+        <div class="slider-container">
+          <label>{{ preferencesForm.get('radiusKm')?.value }} km</label>
+          <mat-slider min="5" max="100" step="5" discrete>
+            <input matSliderThumb formControlName="radiusKm">
+          </mat-slider>
+        </div>
+      </div>
+
+      <!-- Size Preferences -->
+      <div class="preference-section">
+        <h3>Size Preferences</h3>
+        <p class="helper-text">Select preferred dog sizes (leave empty for all sizes)</p>
+        <div class="chips-grid">
+          @for (size of sizes; track size.value) {
+            <div
+              class="chip-option"
+              [class.selected]="isSizeSelected(size.value)"
+              (click)="toggleSize(size.value)"
+            >
+              <div class="chip-content">
+                <span class="chip-label">{{ size.label }}</span>
+                <span class="chip-desc">{{ size.desc }}</span>
+              </div>
+              @if (isSizeSelected(size.value)) {
+                <mat-icon class="check-icon">check_circle</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Energy Level -->
+      <div class="preference-section">
+        <h3>Energy Level</h3>
+        <p class="helper-text">Select preferred energy levels (leave empty for all levels)</p>
+        <div class="chips-grid">
+          @for (energy of energyLevels; track energy.value) {
+            <div
+              class="chip-option"
+              [class.selected]="isEnergySelected(energy.value)"
+              (click)="toggleEnergy(energy.value)"
+            >
+              <div class="chip-content">
+                <span class="energy-icon">{{ energy.icon }}</span>
+                <span class="chip-label">{{ energy.label }}</span>
+              </div>
+              @if (isEnergySelected(energy.value)) {
+                <mat-icon class="check-icon">check_circle</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Breed Preferences -->
+      <div class="preference-section">
+        <h3>Breed Preferences</h3>
+        <p class="helper-text">Select preferred breeds (leave empty for all breeds)</p>
+        <div class="chips-wrap">
+          @for (breed of breeds; track breed) {
+            <div
+              class="chip-small"
+              [class.selected]="isBreedSelected(breed)"
+              (click)="toggleBreed(breed)"
+            >
+              {{ breed }}
+              @if (isBreedSelected(breed)) {
+                <mat-icon>check</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Activity Preferences -->
+      <div class="preference-section">
+        <h3>Activity Preferences</h3>
+        <p class="helper-text">Select preferred activities (leave empty for all activities)</p>
+        <div class="chips-wrap">
+          @for (activity of activities; track activity) {
+            <div
+              class="chip-small"
+              [class.selected]="isActivitySelected(activity)"
+              (click)="toggleActivity(activity)"
+            >
+              {{ activity }}
+              @if (isActivitySelected(activity)) {
+                <mat-icon>check</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Save Button -->
+  <div class="save-button-container">
+    <button mat-raised-button color="primary" (click)="savePreferences()">
+      <mat-icon>save</mat-icon>
+      Save Preferences
+    </button>
+  </div>
+</div>

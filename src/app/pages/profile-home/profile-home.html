@@ -1,0 +1,200 @@
+<div class="profile-container">
+  <!-- Header -->
+  <div class="header">
+    <button mat-icon-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Profile</h1>
+    <button mat-icon-button (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </div>
+
+  <div class="content">
+    <!-- User Info -->
+    <div class="user-section">
+      <div class="avatar">
+        @if (dogProfile()?.imageUrl) {
+          <img [src]="dogProfile().imageUrl" [alt]="dogProfile().name">
+        } @else {
+          <mat-icon>person</mat-icon>
+        }
+      </div>
+      <h2>{{ authService.user()?.name || 'User' }}</h2>
+      <p class="email">{{ authService.user()?.email }}</p>
+    </div>
+
+    <!-- Dog Profile Card -->
+    @if (dogProfile()) {
+      <mat-card class="dog-profile-card">
+        <mat-card-header>
+          <mat-card-title>
+            <div class="card-title-row">
+              <span>My Dog</span>
+              <button mat-icon-button (click)="editProfile()">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (isEditingImage()) {
+            <!-- Image Upload Mode -->
+            <app-image-upload
+              [initialImage]="dogProfile().imageUrl"
+              buttonText="Change Dog Photo"
+              aspectRatio="square"
+              (imageSelected)="onImageSelected($event)"
+              (imageRemoved)="onImageRemoved()"
+            ></app-image-upload>
+            <button mat-stroked-button (click)="toggleImageEdit()" class="cancel-btn">
+              Cancel
+            </button>
+          } @else {
+            <!-- Normal Display Mode -->
+            <div class="dog-info">
+              <div class="dog-image" (click)="toggleImageEdit()">
+                <img [src]="dogProfile().imageUrl" [alt]="dogProfile().name">
+                <div class="image-overlay">
+                  <mat-icon>edit</mat-icon>
+                  <span>Change Photo</span>
+                </div>
+              </div>
+              <div class="dog-details">
+                <h3>{{ dogProfile().name }}, {{ dogProfile().age }}</h3>
+                <p>{{ dogProfile().breed }}</p>
+                <div class="tags">
+                  <span class="tag">{{ dogProfile().size }}</span>
+                  <span class="tag">{{ dogProfile().energy }}</span>
+                  <span class="tag">{{ dogProfile().gender }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="bio">{{ dogProfile().bio }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card class="no-dog-card">
+        <mat-card-content>
+          <mat-icon>pets</mat-icon>
+          <h3>No Dog Profile Yet</h3>
+          <p>Create your dog's profile to start matching!</p>
+          <button mat-raised-button color="primary" (click)="editProfile()">
+            Add Dog Profile
+          </button>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Stats -->
+    <div class="stats-section">
+      <h3>Activity</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <mat-icon>swipe</mat-icon>
+          <h4>{{ stats().totalSwipes }}</h4>
+          <p>Swipes</p>
+        </div>
+        <div class="stat-card">
+          <mat-icon>favorite</mat-icon>
+          <h4>{{ stats().matches }}</h4>
+          <p>Matches</p>
+        </div>
+        <div class="stat-card">
+          <mat-icon>star</mat-icon>
+          <h4>{{ stats().favorites }}</h4>
+          <p>Favorites</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matches List -->
+    @if (matches().length > 0) {
+      <div class="matches-section">
+        <h3>Recent Matches</h3>
+        <mat-list>
+          @for (match of matches(); track match.id) {
+            <mat-list-item>
+              <img matListItemAvatar [src]="match.dog.imageUrl" [alt]="match.dog.name">
+              <div matListItemTitle>{{ match.dog.name }}</div>
+              <div matListItemLine>{{ match.dog.breed }}</div>
+              <button mat-icon-button matListItemMeta>
+                <mat-icon>chat</mat-icon>
+              </button>
+            </mat-list-item>
+            <mat-divider></mat-divider>
+          }
+        </mat-list>
+        <button mat-stroked-button class="view-all-btn" (click)="viewMatches()">
+          View All Matches
+        </button>
+      </div>
+    }
+
+    <!-- Settings -->
+    <div class="settings-section">
+      <h3>Settings</h3>
+      <mat-list>
+        <mat-list-item>
+          <mat-icon matListItemIcon>notifications</mat-icon>
+          <div matListItemTitle>Notifications</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item (click)="goToMatchPreferences()">
+          <mat-icon matListItemIcon>tune</mat-icon>
+          <div matListItemTitle>Match Preferences</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item>
+          <mat-icon matListItemIcon>privacy_tip</mat-icon>
+          <div matListItemTitle>Privacy & Safety</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item (click)="clearMatches()">
+          <mat-icon matListItemIcon>clear_all</mat-icon>
+          <div matListItemTitle>Clear Matches</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item (click)="clearAllData()">
+          <mat-icon matListItemIcon>delete_sweep</mat-icon>
+          <div matListItemTitle>Clear All Data</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item>
+          <mat-icon matListItemIcon>help</mat-icon>
+          <div matListItemTitle>Help & Support</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+      </mat-list>
+    </div>
+
+    <!-- Sign Out Button -->
+    <button mat-stroked-button class="sign-out-btn" (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+      Sign Out
+    </button>
+  </div>
+</div>

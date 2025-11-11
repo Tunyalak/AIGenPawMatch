@@ -1,0 +1,68 @@
+<div class="notifications-panel">
+  <!-- Header -->
+  <div class="panel-header">
+    <h2>Notifications</h2>
+    <button mat-icon-button (click)="close()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="panel-content">
+    @if (data.matches.length === 0) {
+      <!-- Empty State -->
+      <div class="empty-state">
+        <mat-icon class="empty-icon">notifications_none</mat-icon>
+        <h3>No matches yet</h3>
+        <p>Keep swiping to find your perfect match!</p>
+      </div>
+    } @else {
+      <!-- Matches List -->
+      <div class="matches-list">
+        @for (match of data.matches; track match.id) {
+          <div class="match-item" (click)="viewMatch(match)">
+            <div class="match-avatar">
+              <img [src]="match.dog.imageUrl" [alt]="match.dog.name">
+              <div class="match-indicator">
+                <mat-icon class="heart-icon">favorite</mat-icon>
+              </div>
+            </div>
+
+            <div class="match-info">
+              <div class="match-header">
+                <h4>{{ match.dog.name }}</h4>
+                <span class="match-time">{{ getTimeAgo(match.matchedAt) }}</span>
+              </div>
+              <p class="match-message">
+                <mat-icon class="inline-icon">celebration</mat-icon>
+                It's a match! Say hello to {{ match.dog.name }}
+              </p>
+              <div class="match-details">
+                <span class="detail-tag">{{ match.dog.breed }}</span>
+                <span class="detail-tag">{{ match.dog.age }} years</span>
+                <span class="detail-tag">
+                  <mat-icon class="small-icon">location_on</mat-icon>
+                  {{ match.dog.location.city }}
+                </span>
+              </div>
+            </div>
+
+            <button mat-icon-button class="chevron-btn">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Footer -->
+  @if (data.matches.length > 0) {
+    <div class="panel-footer">
+      <button mat-button class="view-all-btn" (click)="close()">
+        View All Matches
+      </button>
+    </div>
+  }
+</div>

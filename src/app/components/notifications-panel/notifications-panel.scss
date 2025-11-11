@@ -1,0 +1,294 @@
+.notifications-panel {
+  background: white;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// Header
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: white;
+  border-bottom: 1px solid #E5E7EB;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .close-btn {
+    color: #6B7280;
+
+    &:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+  }
+}
+
+// Content
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #F9FAFB;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9CA3AF;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: #D1D5DB;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #6B7280;
+  }
+}
+
+// Matches List
+.matches-list {
+  padding: 8px 0;
+}
+
+.match-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #F9FAFB;
+  }
+
+  &:active {
+    background: #F3F4F6;
+  }
+}
+
+.match-avatar {
+  position: relative;
+  flex-shrink: 0;
+
+  img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #F6A51F;
+  }
+
+  .match-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 24px;
+    height: 24px;
+    background: #F6A51F;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+
+    .heart-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: white;
+    }
+  }
+}
+
+.match-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .match-time {
+    font-size: 12px;
+    color: #9CA3AF;
+    white-space: nowrap;
+  }
+}
+
+.match-message {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .inline-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #F6A51F;
+  }
+}
+
+.match-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  .detail-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: #F3F4F6;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #6B7280;
+
+    .small-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+.chevron-btn {
+  flex-shrink: 0;
+  color: #9CA3AF;
+}
+
+mat-divider {
+  margin: 0 24px;
+}
+
+// Footer
+.panel-footer {
+  padding: 16px 24px;
+  background: white;
+  border-top: 1px solid #E5E7EB;
+
+  .view-all-btn {
+    width: 100%;
+    height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #F6A51F;
+    text-transform: none;
+
+    &:hover {
+      background: #FFF8E7;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .match-item {
+    padding: 12px 16px;
+  }
+
+  .match-avatar img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .match-header h4 {
+    font-size: 15px;
+  }
+
+  .match-message {
+    font-size: 13px;
+  }
+
+  mat-divider {
+    margin: 0 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-header {
+    padding: 16px;
+
+    h2 {
+      font-size: 18px;
+    }
+  }
+
+  .match-item {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .match-avatar img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .match-details {
+    .detail-tag {
+      font-size: 11px;
+      padding: 3px 6px;
+    }
+  }
+}

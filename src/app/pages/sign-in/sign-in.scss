@@ -1,0 +1,267 @@
+.sign-in-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF5E6 0%, #FFFFFF 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+
+  .content {
+    width: 100%;
+    max-width: 400px;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .logo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 48px;
+
+    .logo {
+      margin-bottom: 16px;
+      animation: bounceIn 0.6s ease;
+    }
+
+    .brand-name {
+      font-size: 32px;
+      font-weight: 700;
+      color: #2C2C2C;
+      letter-spacing: 2px;
+      margin: 0;
+    }
+  }
+
+  .title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #2C2C2C;
+    text-align: center;
+    margin: 0 0 32px 0;
+  }
+
+  .social-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+
+    .google-btn {
+      flex: 1;
+      height: 56px;
+      background: #F6A51F !important;
+      color: white !important;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 28px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: #FF8A00 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(246, 165, 31, 0.3);
+      }
+
+      mat-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+    }
+
+    .social-icon-btn {
+      width: 56px;
+      height: 56px;
+      border: 1px solid #E0E0E0;
+      background: white;
+      border-radius: 28px !important;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      &.facebook {
+        color: #1877F2;
+      }
+
+      &.twitter {
+        color: #000000;
+      }
+    }
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+    color: #666666;
+    font-size: 14px;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #E0E0E0;
+    }
+
+    span {
+      padding: 0 16px;
+    }
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #FFEBEE;
+    border-radius: 8px;
+    color: #C62828;
+    margin-bottom: 16px;
+    font-size: 14px;
+
+    mat-icon {
+      width: 20px;
+      height: 20px;
+      font-size: 20px;
+    }
+  }
+
+  .email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    mat-form-field {
+      width: 100%;
+
+      ::ng-deep {
+        .mat-mdc-text-field-wrapper {
+          background: #FFFFFF;
+          border-radius: 28px !important;
+        }
+
+        .mat-mdc-form-field-infix {
+          padding: 16px 0;
+        }
+
+        .mat-mdc-form-field-subscript-wrapper {
+          display: none;
+        }
+      }
+    }
+
+    .input-icon {
+      .check-icon {
+        color: #4CAF50;
+        font-size: 20px;
+      }
+    }
+
+    .visibility-toggle {
+      color: #999999;
+    }
+
+    .forgot-password {
+      text-align: right;
+      margin-top: -8px;
+
+      a {
+        color: #999999;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.3s ease;
+
+        &:hover {
+          color: #F6A51F;
+        }
+      }
+    }
+
+    .sign-in-btn {
+      height: 56px;
+      background: #FF8A00 !important;
+      color: white !important;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 28px !important;
+      margin-top: 8px;
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        background: #F6A51F !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(255, 138, 0, 0.3);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+      }
+
+      mat-spinner {
+        margin: 0 auto;
+
+        ::ng-deep circle {
+          stroke: white;
+        }
+      }
+    }
+  }
+
+  .sign-up-link {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 16px;
+    color: #666666;
+
+    .sign-up-text {
+      color: #FF8A00;
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 4px;
+      transition: color 0.3s ease;
+
+      &:hover {
+        color: #F6A51F;
+      }
+    }
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
