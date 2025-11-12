@@ -13,13 +13,13 @@
   <div class="content">
     <!-- User Info -->
     <div class="user-section">
-      <div class="avatar">
+      <!-- <div class="avatar">
         @if (dogProfile()?.imageUrl) {
           <img [src]="dogProfile().imageUrl" [alt]="dogProfile().name">
         } @else {
           <mat-icon>person</mat-icon>
         }
-      </div>
+      </div> -->
       <h2>{{ authService.user()?.name || 'User' }}</h2>
       <p class="email">{{ authService.user()?.email }}</p>
     </div>
