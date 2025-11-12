@@ -38,15 +38,15 @@ A mobile-first Tinder-like app for connecting dogs and their owners for playdate
   - Responsive mobile-first design
   - Route guards for authentication
 
-## � Screenshots
+## 📸 Screenshots
 
 <div align="center">
-  <img src="docs/screenshots/welcome-screen.png" width="200" alt="Welcome Screen"/>
-  <img src="docs/screenshots/sign-in.png" width="200" alt="Sign In"/>
-  <img src="docs/screenshots/register-dog.png" width="200" alt="Register Dog"/>
-  <img src="docs/screenshots/match-swipe.png" width="200" alt="Match & Swipe"/>
-  <img src="docs/screenshots/match-preferences.png" width="200" alt="Preferences"/>
-  <img src="docs/screenshots/profile.png" width="200" alt="Profile"/>
+  <img src="https://github.com/Tunyalak/AIGenPawMatch/blob/main/docs/screenshots/welcome.jpg?raw=true" width="200" alt="Welcome Screen"/>
+  <img src="https://github.com/Tunyalak/AIGenPawMatch/blob/main/docs/screenshots/sign-in.jpg?raw=true" width="200" alt="Sign In"/>
+  <img src="https://github.com/Tunyalak/AIGenPawMatch/blob/main/docs/screenshots/register-dog.jpg?raw=true" width="200" alt="Register Dog"/>
+  <img src="https://github.com/Tunyalak/AIGenPawMatch/blob/main/docs/screenshots/match.jpg?raw=true" width="200" alt="Match & Swipe"/>
+  <img src="https://github.com/Tunyalak/AIGenPawMatch/blob/main/docs/screenshots/match-preferences.jpg?raw=true" width="200" alt="Preferences"/>
+  <img src="https://github.com/Tunyalak/AIGenPawMatch/blob/main/docs/screenshots/profile.jpg?raw=true" width="200" alt="Profile"/>
 </div>
 
 > **Note:** Screenshots to be added. Please capture the app screens and save them to `docs/screenshots/`
