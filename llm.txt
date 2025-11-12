@@ -1,0 +1,2336 @@
+﻿# PawMatch - Dog Matching Application (Core Files)
+
+## Project Overview
+Angular 20 standalone component application for dog matching
+
+## Architecture
+- Standalone Components (no NgModules)
+- Signal-based state management
+- Material Design UI
+- Client-side routing with guards
+- LocalStorage for persistence
+
+
+
+## File: src/app/app.ts
+```ts
+import { Component, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet],
+  templateUrl: './app.html',
+  styleUrl: './app.scss'
+})
+export class App {
+  protected readonly title = signal('pawmatch');
+}
+
+```
+
+## File: src/app/app.routes.ts
+```ts
+import { Routes } from '@angular/router';
+import { authGuard } from './guards/auth.guard';
+
+export const routes: Routes = [
+  {
+    path: '',
+    redirectTo: '/welcome',
+    pathMatch: 'full'
+  },
+  {
+    path: 'sign-in',
+    loadComponent: () => import('./pages/sign-in/sign-in').then(m => m.SignIn)
+  },
+  {
+    path: 'welcome',
+    loadComponent: () => import('./pages/welcome/welcome').then(m => m.Welcome)
+  },
+  {
+    path: 'register-dog',
+    loadComponent: () => import('./pages/register-dog/register-dog').then(m => m.RegisterDog),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./pages/profile-home/profile-home').then(m => m.ProfileHome),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'match-preferences',
+    loadComponent: () => import('./pages/match-preferences/match-preferences').then(m => m.MatchPreferences),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'match',
+    loadComponent: () => import('./pages/match-swipe/match-swipe').then(m => m.MatchSwipe),
+    canActivate: [authGuard]
+  },
+  {
+    path: '**',
+    redirectTo: '/welcome'
+  }
+];
+
+```
+
+## File: src/app/models/dog.model.ts
+```ts
+export interface Dog {
+  id: string;
+  name: string;
+  breed: string;
+  age: number;
+  gender: 'male' | 'female';
+  size: 'toy' | 'small' | 'medium' | 'large' | 'giant';
+  energy: 'low' | 'moderate' | 'high' | 'very-high';
+  activities: string[];
+  bio: string;
+  imageUrl: string;
+  location: {
+    lat: number;
+    lng: number;
+    city: string;
+  };
+  ownerId: string;
+  ownerName: string;
+}
+
+export interface DogProfile extends Dog {
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SwipeAction {
+  dogId: string;
+  action: 'pass' | 'like' | 'favorite';
+  timestamp: Date;
+}
+
+export interface Match {
+  id: string;
+  dog: Dog;
+  matchedAt: Date;
+  chatId?: string;
+}
+
+export interface DogFilters {
+  radiusKm: number;
+  breeds: string[];
+  ageRange: { min: number; max: number };
+  sizes: ('toy' | 'small' | 'medium' | 'large' | 'giant')[];
+  energyLevels: ('low' | 'moderate' | 'high' | 'very-high')[];
+  activities: string[];
+}
+
+export const DEFAULT_FILTERS: DogFilters = {
+  radiusKm: 50,
+  breeds: [],
+  ageRange: { min: 0, max: 15 },
+  sizes: [],
+  energyLevels: [],
+  activities: []
+};
+
+export const ACTIVITY_OPTIONS = [
+  'Walking',
+  'Running',
+  'Hiking',
+  'Swimming',
+  'Fetch',
+  'Agility',
+  'Dog Parks',
+  'Beach',
+  'Camping',
+  'Training'
+];
+
+export const BREED_OPTIONS = [
+  'Australian Shepherd',
+  'Beagle',
+  'Border Collie',
+  'Boston Terrier',
+  'Boxer',
+  'Bulldog',
+  'Cavalier King Charles Spaniel',
+  'Dachshund',
+  'Doberman Pinscher',
+  'French Bulldog',
+  'German Shepherd',
+  'German Shorthaired Pointer',
+  'Golden Retriever',
+  'Great Dane',
+  'Labrador Retriever',
+  'Miniature Schnauzer',
+  'Mixed Breed',
+  'Pembroke Welsh Corgi',
+  'Pomeranian',
+  'Poodle',
+  'Rottweiler',
+  'Shih Tzu',
+  'Siberian Husky',
+  'Yorkshire Terrier'
+];
+
+```
+
+## File: src/app/services/mock-dog.ts
+```ts
+import { Injectable, signal } from '@angular/core';
+import { Dog, DogFilters, SwipeAction, Match } from '../models/dog.model';
+import { StorageService } from './storage';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class MockDogService {
+  private readonly SWIPES_KEY = 'swipes';
+  private readonly MATCHES_KEY = 'matches';
+
+  // Mock dog database
+  private mockDogs: Dog[] = [
+    {
+      id: '1',
+      name: 'Max',
+      breed: 'Golden Retriever',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'high',
+      activities: ['Walking', 'Fetch', 'Swimming', 'Dog Parks'],
+      bio: 'Friendly and energetic! Love meeting new friends at the park.',
+      imageUrl: 'https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner1',
+      ownerName: 'Sarah Johnson'
+    },
+    {
+      id: '2',
+      name: 'Bella',
+      breed: 'Labrador Retriever',
+      age: 2,
+      gender: 'female',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Swimming', 'Fetch'],
+      bio: 'Always ready for an adventure! Let\'s explore trails together.',
+      imageUrl: 'https://images.unsplash.com/photo-1591769225440-811ad7d6eab3?w=800',
+      location: { lat: 18.7883, lng: 98.9853, city: 'Chiang Mai' },
+      ownerId: 'owner2',
+      ownerName: 'Michael Chen'
+    },
+    {
+      id: '3',
+      name: 'Charlie',
+      breed: 'French Bulldog',
+      age: 1,
+      gender: 'male',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Dog Parks', 'Training'],
+      bio: 'Playful pup who loves to snuggle. Great with other dogs!',
+      imageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner3',
+      ownerName: 'Emma Davis'
+    },
+    {
+      id: '4',
+      name: 'Luna',
+      breed: 'Border Collie',
+      age: 4,
+      gender: 'female',
+      size: 'medium',
+      energy: 'very-high',
+      activities: ['Agility', 'Running', 'Training', 'Fetch'],
+      bio: 'Smart and athletic! Looking for active playmates.',
+      imageUrl: 'https://images.unsplash.com/photo-1568572933382-74d440642117?w=800',
+      location: { lat: 7.8804, lng: 98.3923, city: 'Phuket' },
+      ownerId: 'owner4',
+      ownerName: 'James Wilson'
+    },
+    {
+      id: '5',
+      name: 'Cooper',
+      breed: 'Australian Shepherd',
+      age: 3,
+      gender: 'male',
+      size: 'medium',
+      energy: 'high',
+      activities: ['Hiking', 'Running', 'Agility', 'Beach'],
+      bio: 'Adventurous and loyal companion. Love outdoor activities!',
+      imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
+      location: { lat: 13.3611, lng: 100.9847, city: 'Chon Buri' },
+      ownerId: 'owner5',
+      ownerName: 'Olivia Martinez'
+    },
+    {
+      id: '6',
+      name: 'Daisy',
+      breed: 'Beagle',
+      age: 5,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Dog Parks', 'Fetch'],
+      bio: 'Sweet and curious! Always following my nose.',
+      imageUrl: 'https://images.unsplash.com/photo-1505628346881-b72b27e84530?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner6',
+      ownerName: 'William Brown'
+    },
+    {
+      id: '7',
+      name: 'Rocky',
+      breed: 'German Shepherd',
+      age: 4,
+      gender: 'male',
+      size: 'large',
+      energy: 'high',
+      activities: ['Running', 'Training', 'Hiking', 'Agility'],
+      bio: 'Protective and smart. Love learning new tricks!',
+      imageUrl: 'https://images.unsplash.com/photo-1568393691622-c7ba131d63b4?w=800',
+      location: { lat: 18.7883, lng: 98.9853, city: 'Chiang Mai' },
+      ownerId: 'owner7',
+      ownerName: 'Sophia Anderson'
+    },
+    {
+      id: '8',
+      name: 'Molly',
+      breed: 'Poodle',
+      age: 2,
+      gender: 'female',
+      size: 'medium',
+      energy: 'moderate',
+      activities: ['Walking', 'Training', 'Dog Parks'],
+      bio: 'Elegant and friendly. Enjoy meeting new friends!',
+      imageUrl: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=800',
+      location: { lat: 14.0208, lng: 100.5230, city: 'Nonthaburi' },
+      ownerId: 'owner8',
+      ownerName: 'Daniel Lee'
+    },
+    {
+      id: '9',
+      name: 'Buddy',
+      breed: 'Boxer',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'high',
+      activities: ['Running', 'Fetch', 'Dog Parks', 'Beach'],
+      bio: 'Energetic and fun-loving! Always up for playtime.',
+      imageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner9',
+      ownerName: 'Ava Taylor'
+    },
+    {
+      id: '10',
+      name: 'Sadie',
+      breed: 'Pembroke Welsh Corgi',
+      age: 2,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Fetch', 'Dog Parks'],
+      bio: 'Short legs, big personality! Love making new friends.',
+      imageUrl: 'https://images.unsplash.com/photo-1546527868-ccb7ee7dfa6a?w=800',
+      location: { lat: 13.5282, lng: 100.2638, city: 'Samut Sakhon' },
+      ownerId: 'owner10',
+      ownerName: 'Noah White'
+    },
+    {
+      id: '11',
+      name: 'Duke',
+      breed: 'Rottweiler',
+      age: 5,
+      gender: 'male',
+      size: 'giant',
+      energy: 'moderate',
+      activities: ['Walking', 'Training', 'Hiking'],
+      bio: 'Gentle giant with a big heart. Protective but friendly.',
+      imageUrl: 'https://images.unsplash.com/photo-1567752881298-894bb81f9379?w=800',
+      location: { lat: 19.9071, lng: 99.8325, city: 'Chiang Rai' },
+      ownerId: 'owner11',
+      ownerName: 'Isabella Harris'
+    },
+    {
+      id: '12',
+      name: 'Rosie',
+      breed: 'Cavalier King Charles Spaniel',
+      age: 1,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Training'],
+      bio: 'Gentle and affectionate. Perfect cuddle buddy!',
+      imageUrl: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner12',
+      ownerName: 'Liam Clark'
+    },
+    {
+      id: '13',
+      name: 'Zeus',
+      breed: 'Siberian Husky',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Swimming', 'Agility'],
+      bio: 'Adventurous spirit! Love exploring and outdoor fun.',
+      imageUrl: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800',
+      location: { lat: 7.8804, lng: 98.3923, city: 'Phuket' },
+      ownerId: 'owner13',
+      ownerName: 'Mia Rodriguez'
+    },
+    {
+      id: '14',
+      name: 'Coco',
+      breed: 'Yorkshire Terrier',
+      age: 4,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Dog Parks'],
+      bio: 'Small but mighty! Love being the center of attention.',
+      imageUrl: 'https://images.unsplash.com/photo-1516598540642-e8f40a09d939?w=800',
+      location: { lat: 13.5906, lng: 100.6018, city: 'Samut Prakan' },
+      ownerId: 'owner14',
+      ownerName: 'Ethan Martinez'
+    },
+    {
+      id: '15',
+      name: 'Jack',
+      breed: 'Boston Terrier',
+      age: 2,
+      gender: 'male',
+      size: 'small',
+      energy: 'high',
+      activities: ['Fetch', 'Dog Parks', 'Training'],
+      bio: 'Playful and intelligent. Always ready for fun!',
+      imageUrl: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800',
+      location: { lat: 18.7883, lng: 98.9853, city: 'Chiang Mai' },
+      ownerId: 'owner15',
+      ownerName: 'Charlotte Garcia'
+    },
+    {
+      id: '16',
+      name: 'Ruby',
+      breed: 'Dachshund',
+      age: 3,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Fetch', 'Dog Parks'],
+      bio: 'Curious and brave! Love exploring new places.',
+      imageUrl: 'https://images.unsplash.com/photo-1612536616623-ef7e5660edbc?w=800',
+      location: { lat: 14.9930, lng: 102.0977, city: 'Khon Kaen' },
+      ownerId: 'owner16',
+      ownerName: 'Mason Thompson'
+    },
+    {
+      id: '17',
+      name: 'Bear',
+      breed: 'Great Dane',
+      age: 4,
+      gender: 'male',
+      size: 'giant',
+      energy: 'moderate',
+      activities: ['Walking', 'Beach', 'Dog Parks'],
+      bio: 'Big softie who loves everyone. Gentle with all dogs!',
+      imageUrl: 'https://images.unsplash.com/photo-1567529692333-de9fd6772897?w=800',
+      location: { lat: 9.1382, lng: 99.3336, city: 'Surat Thani' },
+      ownerId: 'owner17',
+      ownerName: 'Amelia Wilson'
+    },
+    {
+      id: '18',
+      name: 'Penny',
+      breed: 'Shih Tzu',
+      age: 5,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Training'],
+      bio: 'Sweet and calm. Looking for gentle playmates.',
+      imageUrl: 'https://images.unsplash.com/photo-1612774412231-1c4b5c3c836b?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner18',
+      ownerName: 'Lucas Moore'
+    },
+    {
+      id: '19',
+      name: 'Oliver',
+      breed: 'Miniature Schnauzer',
+      age: 2,
+      gender: 'male',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Training', 'Dog Parks', 'Fetch'],
+      bio: 'Alert and friendly! Love playing with other small dogs.',
+      imageUrl: 'https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?w=800',
+      location: { lat: 14.3532, lng: 100.5699, city: 'Pathum Thani' },
+      ownerId: 'owner19',
+      ownerName: 'Harper Jackson'
+    },
+    {
+      id: '20',
+      name: 'Zoey',
+      breed: 'Mixed Breed',
+      age: 3,
+      gender: 'female',
+      size: 'medium',
+      energy: 'high',
+      activities: ['Running', 'Hiking', 'Dog Parks', 'Swimming'],
+      bio: 'Unique and lovable! Best of many breeds in one.',
+      imageUrl: 'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=800',
+      location: { lat: 13.3611, lng: 100.9847, city: 'Chon Buri' },
+      ownerId: 'owner20',
+      ownerName: 'Benjamin Davis'
+    },
+    {
+      id: '21',
+      name: 'Milo',
+      breed: 'Pomeranian',
+      age: 2,
+      gender: 'male',
+      size: 'small',
+      energy: 'high',
+      activities: ['Walking', 'Dog Parks', 'Training', 'Fetch'],
+      bio: 'Fluffy ball of energy! Love to play and show off tricks.',
+      imageUrl: 'https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner21',
+      ownerName: 'Evelyn Martinez'
+    },
+    {
+      id: '22',
+      name: 'Lola',
+      breed: 'Doberman Pinscher',
+      age: 4,
+      gender: 'female',
+      size: 'large',
+      energy: 'high',
+      activities: ['Running', 'Training', 'Agility', 'Hiking'],
+      bio: 'Athletic and loyal. Looking for active companions!',
+      imageUrl: 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?w=800',
+      location: { lat: 18.2932, lng: 99.4902, city: 'Lamphun' },
+      ownerId: 'owner22',
+      ownerName: 'Sebastian Lee'
+    },
+    {
+      id: '23',
+      name: 'Teddy',
+      breed: 'Bulldog',
+      age: 5,
+      gender: 'male',
+      size: 'medium',
+      energy: 'low',
+      activities: ['Walking', 'Dog Parks'],
+      bio: 'Laid-back and lovable. Prefer short walks and lots of naps.',
+      imageUrl: 'https://images.unsplash.com/photo-1583511655826-05700d52f4d9?w=800',
+      location: { lat: 7.0055, lng: 100.4737, city: 'Songkhla' },
+      ownerId: 'owner23',
+      ownerName: 'Victoria Chen'
+    },
+    {
+      id: '24',
+      name: 'Nala',
+      breed: 'German Shorthaired Pointer',
+      age: 3,
+      gender: 'female',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Swimming', 'Fetch', 'Camping'],
+      bio: 'Born to run! Need active friends who love adventures.',
+      imageUrl: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=800',
+      location: { lat: 12.6111, lng: 99.9576, city: 'Prachuap Khiri Khan' },
+      ownerId: 'owner24',
+      ownerName: 'Jackson White'
+    },
+    {
+      id: '25',
+      name: 'Finn',
+      breed: 'Mixed Breed',
+      age: 1,
+      gender: 'male',
+      size: 'medium',
+      energy: 'high',
+      activities: ['Fetch', 'Dog Parks', 'Running', 'Beach'],
+      bio: 'Young and playful! Still learning but love making friends.',
+      imageUrl: 'https://images.unsplash.com/photo-1587764379873-97837921fd44?w=800',
+      location: { lat: 12.9236, lng: 100.8825, city: 'Rayong' },
+      ownerId: 'owner25',
+      ownerName: 'Scarlett Brown'
+    },
+    {
+      id: '26',
+      name: 'Sophie',
+      breed: 'Cocker Spaniel',
+      age: 4,
+      gender: 'female',
+      size: 'medium',
+      energy: 'moderate',
+      activities: ['Walking', 'Swimming', 'Fetch', 'Dog Parks'],
+      bio: 'Sweet and gentle soul. Love water and cuddles!',
+      imageUrl: 'https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=800',
+      location: { lat: 15.2286, lng: 104.8517, city: 'Ubon Ratchathani' },
+      ownerId: 'owner26',
+      ownerName: 'Henry Garcia'
+    },
+    {
+      id: '27',
+      name: 'Thor',
+      breed: 'Boxer',
+      age: 2,
+      gender: 'male',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Fetch', 'Dog Parks', 'Agility', 'Training'],
+      bio: 'Strong and energetic! Always ready for action.',
+      imageUrl: 'https://images.unsplash.com/photo-1568572933382-74d440642117?w=800',
+      location: { lat: 14.8818, lng: 100.9133, city: 'Saraburi' },
+      ownerId: 'owner27',
+      ownerName: 'Grace Wilson'
+    },
+    {
+      id: '28',
+      name: 'Lily',
+      breed: 'Maltese',
+      age: 3,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Training'],
+      bio: 'Delicate and affectionate. Perfect lap dog companion!',
+      imageUrl: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800',
+      location: { lat: 8.0863, lng: 98.9063, city: 'Krabi' },
+      ownerId: 'owner28',
+      ownerName: 'Matthew Taylor'
+    },
+    {
+      id: '29',
+      name: 'Ace',
+      breed: 'Weimaraner',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Fetch', 'Camping', 'Beach'],
+      bio: 'Sleek and athletic! Love long runs and outdoor fun.',
+      imageUrl: 'https://images.unsplash.com/photo-1600804931749-2da4ce26c869?w=800',
+      location: { lat: 15.8700, lng: 100.9925, city: 'Nakhon Sawan' },
+      ownerId: 'owner29',
+      ownerName: 'Chloe Martinez'
+    },
+    {
+      id: '30',
+      name: 'Pepper',
+      breed: 'Border Terrier',
+      age: 4,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Fetch', 'Dog Parks', 'Training'],
+      bio: 'Spunky and smart! Love learning new tricks.',
+      imageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800',
+      location: { lat: 17.4138, lng: 102.7875, city: 'Udon Thani' },
+      ownerId: 'owner30',
+      ownerName: 'Alexander Harris'
+    }
+  ];
+
+  private swipes = signal<SwipeAction[]>([]);
+  private matches = signal<Match[]>([]);
+
+  constructor(private storage: StorageService) {
+    this.loadSwipesAndMatches();
+  }
+
+  private loadSwipesAndMatches(): void {
+    const savedSwipes = this.storage.getItem<SwipeAction[]>(this.SWIPES_KEY);
+    const savedMatches = this.storage.getItem<Match[]>(this.MATCHES_KEY);
+
+    if (savedSwipes) {
+      this.swipes.set(savedSwipes);
+    }
+    if (savedMatches) {
+      this.matches.set(savedMatches);
+    }
+  }
+
+  /**
+   * Get dogs based on filters
+   */
+  getDogs(filters: DogFilters): Promise<Dog[]> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const swipedIds = new Set(this.swipes().map(s => s.dogId));
+
+        let filtered = this.mockDogs.filter(dog => !swipedIds.has(dog.id));
+        console.log('Before filtering:', filtered.length, 'dogs');
+        console.log('Filters:', filters);
+
+        // Apply filters
+        if (filters.breeds.length > 0) {
+          filtered = filtered.filter(dog => filters.breeds.includes(dog.breed));
+          console.log('After breed filter:', filtered.length, 'dogs');
+        }
+
+        if (filters.sizes.length > 0) {
+          filtered = filtered.filter(dog => filters.sizes.includes(dog.size));
+          console.log('After size filter:', filtered.length, 'dogs');
+        }
+
+        if (filters.energyLevels.length > 0) {
+          filtered = filtered.filter(dog => filters.energyLevels.includes(dog.energy));
+          console.log('After energy filter:', filtered.length, 'dogs');
+        }
+
+        if (filters.activities.length > 0) {
+          filtered = filtered.filter(dog =>
+            filters.activities.some(activity => dog.activities.includes(activity))
+          );
+          console.log('After activities filter:', filtered.length, 'dogs');
+        }
+
+        // Age filter
+        filtered = filtered.filter(dog =>
+          dog.age >= filters.ageRange.min && dog.age <= filters.ageRange.max
+        );
+        console.log('After age filter:', filtered.length, 'dogs');
+
+        // Simple location filter (in real app, would use distance calculation)
+        // For now, just return filtered results
+
+        console.log('Final filtered dogs:', filtered.length);
+        resolve(filtered);
+      }, 300);
+    });
+  }
+
+  /**
+   * Submit a swipe action
+   */
+  submitSwipe(dogId: string, action: 'pass' | 'like' | 'favorite'): Promise<{ isMatch: boolean; match?: Match }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const swipeAction: SwipeAction = {
+          dogId,
+          action,
+          timestamp: new Date()
+        };
+
+        const updatedSwipes = [...this.swipes(), swipeAction];
+        this.swipes.set(updatedSwipes);
+        this.storage.setItem(this.SWIPES_KEY, updatedSwipes);
+
+        // Tinder-style matching: simulate if the other dog liked us back
+        // Only 'like' and 'favorite' can match
+        let isMatch = false;
+
+        if (action === 'like' || action === 'favorite') {
+          // Simulate 30% chance that the other dog also liked us
+          const mutualLikeChance = 0.3;
+          isMatch = Math.random() < mutualLikeChance;
+        }
+
+        if (isMatch) {
+          const dog = this.mockDogs.find(d => d.id === dogId);
+          if (dog) {
+            const match: Match = {
+              id: Date.now().toString(),
+              dog,
+              matchedAt: new Date()
+            };
+
+            const updatedMatches = [...this.matches(), match];
+            this.matches.set(updatedMatches);
+            this.storage.setItem(this.MATCHES_KEY, updatedMatches);
+
+            resolve({ isMatch: true, match });
+            return;
+          }
+        }
+
+        resolve({ isMatch: false });
+      }, 300);
+    });
+  }
+
+  /**
+   * Get all matches
+   */
+  getMatches(): Promise<Match[]> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(this.matches());
+      }, 200);
+    });
+  }
+
+  /**
+   * Undo last swipe
+   */
+  undoLastSwipe(): Promise<Dog | null> {
+    return new Promise((resolve) => {
+      const currentSwipes = this.swipes();
+      if (currentSwipes.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      const lastSwipe = currentSwipes[currentSwipes.length - 1];
+      const updatedSwipes = currentSwipes.slice(0, -1);
+
+      this.swipes.set(updatedSwipes);
+      this.storage.setItem(this.SWIPES_KEY, updatedSwipes);
+
+      const dog = this.mockDogs.find(d => d.id === lastSwipe.dogId);
+      resolve(dog || null);
+    });
+  }
+
+  /**
+   * Get dog by ID
+   */
+  getDogById(id: string): Dog | undefined {
+    return this.mockDogs.find(d => d.id === id);
+  }
+
+  /**
+   * Clear all matches
+   */
+  clearMatches(): Promise<void> {
+    return new Promise((resolve) => {
+      this.matches.set([]);
+      this.storage.removeItem(this.MATCHES_KEY);
+      resolve();
+    });
+  }
+
+  /**
+   * Clear all swipes and matches
+   */
+  clearAll(): Promise<void> {
+    return new Promise((resolve) => {
+      this.swipes.set([]);
+      this.matches.set([]);
+      this.storage.removeItem(this.SWIPES_KEY);
+      this.storage.removeItem(this.MATCHES_KEY);
+      resolve();
+    });
+  }
+
+  /**
+   * Get statistics
+   * - Swipes: count pass + like
+   * - Matches: count like that matched
+   * - Favorites: count favorite
+   */
+  getStats(): { totalSwipes: number; matches: number; favorites: number } {
+    const allSwipes = this.swipes();
+    const allMatches = this.matches();
+
+    // Swipes: à¸™à¸±à¸š pass à¹à¸¥à¸° like (à¹„à¸¡à¹ˆà¸™à¸±à¸š favorite)
+    const totalSwipes = allSwipes.filter(s => s.action === 'pass' || s.action === 'like').length;
+
+    // Matches: à¸™à¸±à¸š like à¸—à¸µà¹ˆ match à¸ªà¸³à¹€à¸£à¹‡à¸ˆ
+    const matches = allMatches.length;
+
+    // Favorites: à¸™à¸±à¸š favorite
+    const favorites = allSwipes.filter(s => s.action === 'favorite').length;
+
+    return {
+      totalSwipes,
+      matches,
+      favorites
+    };
+  }
+}
+
+```
+
+## File: src/app/services/auth.ts
+```ts
+import { Injectable, signal, computed } from '@angular/core';
+import { Router } from '@angular/router';
+import { User, LoginCredentials, AuthState } from '../models/auth.model';
+import { StorageService } from './storage';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthService {
+  private readonly AUTH_KEY = 'auth_state';
+
+  // Mock users database
+  private mockUsers = new Map<string, { password: string; user: User }>([
+    [
+      'demo@pawmatch.com',
+      {
+        password: 'password123',
+        user: {
+          id: '1',
+          email: 'demo@pawmatch.com',
+          name: 'Demo User',
+          createdAt: new Date()
+        }
+      }
+    ]
+  ]);
+
+  private authState = signal<AuthState>({
+    user: null,
+    token: null,
+    isAuthenticated: false
+  });
+
+  // Public signals
+  readonly user = computed(() => this.authState().user);
+  readonly isAuthenticated = computed(() => this.authState().isAuthenticated);
+
+  constructor(
+    private storage: StorageService,
+    private router: Router
+  ) {
+    this.loadAuthState();
+  }
+
+  /**
+   * Load authentication state from localStorage
+   */
+  private loadAuthState(): void {
+    const stored = this.storage.getItem<AuthState>(this.AUTH_KEY);
+    if (stored && stored.isAuthenticated) {
+      this.authState.set(stored);
+    }
+  }
+
+  /**
+   * Save authentication state to localStorage
+   */
+  private saveAuthState(state: AuthState): void {
+    this.storage.setItem(this.AUTH_KEY, state);
+    this.authState.set(state);
+  }
+
+  /**
+   * Sign in with email and password
+   */
+  signIn(credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const userRecord = this.mockUsers.get(credentials.email);
+
+        if (!userRecord || userRecord.password !== credentials.password) {
+          resolve({ success: false, error: 'Invalid email or password' });
+          return;
+        }
+
+        const authState: AuthState = {
+          user: userRecord.user,
+          token: 'mock-jwt-token-' + Date.now(),
+          isAuthenticated: true
+        };
+
+        this.saveAuthState(authState);
+        resolve({ success: true });
+      }, 500); // Simulate API delay
+    });
+  }
+
+  /**
+   * Sign up a new user
+   */
+  signUp(email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (this.mockUsers.has(email)) {
+          resolve({ success: false, error: 'Email already registered' });
+          return;
+        }
+
+        const newUser: User = {
+          id: Date.now().toString(),
+          email,
+          name,
+          createdAt: new Date()
+        };
+
+        this.mockUsers.set(email, { password, user: newUser });
+
+        const authState: AuthState = {
+          user: newUser,
+          token: 'mock-jwt-token-' + Date.now(),
+          isAuthenticated: true
+        };
+
+        this.saveAuthState(authState);
+        resolve({ success: true });
+      }, 500);
+    });
+  }
+
+  /**
+   * Sign out the current user
+   */
+  signOut(): void {
+    this.storage.removeItem(this.AUTH_KEY);
+    this.authState.set({
+      user: null,
+      token: null,
+      isAuthenticated: false
+    });
+    this.router.navigate(['/sign-in']);
+  }
+
+  /**
+   * Check if user is authenticated (for guards)
+   */
+  checkAuth(): boolean {
+    return this.authState().isAuthenticated;
+  }
+}
+
+```
+
+## File: src/app/services/storage.ts
+```ts
+import { Injectable, signal, Signal, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class StorageService {
+  private readonly PREFIX = 'pawmatch_';
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+
+  /**
+   * Get an item from localStorage
+   */
+  getItem<T>(key: string): T | null {
+    if (!this.isBrowser) {
+      return null;
+    }
+
+    try {
+      const item = localStorage.getItem(this.PREFIX + key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set an item in localStorage
+   */
+  setItem<T>(key: string, value: T): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Error writing to localStorage:', error);
+    }
+  }
+
+  /**
+   * Remove an item from localStorage
+   */
+  removeItem(key: string): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    try {
+      localStorage.removeItem(this.PREFIX + key);
+    } catch (error) {
+      console.error('Error removing from localStorage:', error);
+    }
+  }
+
+  /**
+   * Clear all items from localStorage with our prefix
+   */
+  clear(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    try {
+      const keys = Object.keys(localStorage).filter(key =>
+        key.startsWith(this.PREFIX)
+      );
+      keys.forEach(key => localStorage.removeItem(key));
+    } catch (error) {
+      console.error('Error clearing localStorage:', error);
+    }
+  }
+
+  /**
+   * Create a signal backed by localStorage
+   */
+  createPersistedSignal<T>(key: string, initialValue: T): Signal<T> & { set: (value: T) => void } {
+    const stored = this.getItem<T>(key);
+    const sig = signal<T>(stored ?? initialValue);
+
+    const originalSet = sig.set.bind(sig);
+    const wrappedSet = (value: T) => {
+      originalSet(value);
+      this.setItem(key, value);
+    };
+
+    return Object.assign(sig, { set: wrappedSet });
+  }
+}
+
+```
+
+## File: src/app/guards/auth.guard.ts
+```ts
+import { inject } from '@angular/core';
+import { Router, CanActivateFn } from '@angular/router';
+import { AuthService } from '../services/auth';
+
+export const authGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (authService.checkAuth()) {
+    return true;
+  }
+
+  // Redirect to sign-in with return URL
+  router.navigate(['/sign-in'], {
+    queryParams: { returnUrl: state.url }
+  });
+  return false;
+};
+
+```
+
+## File: src/app/pages/match-swipe/match-swipe.ts
+```ts
+import { Component, OnInit, signal, computed, HostListener, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, NavigationEnd } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatBottomSheetModule, MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Dog, DogFilters, DEFAULT_FILTERS } from '../../models/dog.model';
+import { MockDogService } from '../../services/mock-dog';
+import { SwipeEngineService, SwipeState } from '../../services/swipe-engine';
+import { StorageService } from '../../services/storage';
+import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
+
+@Component({
+  selector: 'app-match-swipe',
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatBottomSheetModule,
+    MatBadgeModule,
+    MatDialogModule,
+    MatTooltipModule,
+    MatSnackBarModule
+  ],
+  templateUrl: './match-swipe.html',
+  styleUrl: './match-swipe.scss',
+})
+export class MatchSwipe implements OnInit, OnDestroy {
+  dogs = signal<Dog[]>([]);
+  currentDog = computed(() => this.dogs()[0] || null);
+  filters = signal<DogFilters>(DEFAULT_FILTERS);
+  matchCount = signal(0);
+  isLoading = signal(false);
+
+  private routerSubscription?: Subscription;
+
+  // Swipe state
+  swipeState = signal<SwipeState>({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    deltaX: 0,
+    deltaY: 0,
+    rotation: 0,
+    opacity: 1,
+    direction: 'none'
+  });
+
+  constructor(
+    private dogService: MockDogService,
+    private swipeEngine: SwipeEngineService,
+    private storage: StorageService,
+    private router: Router,
+    private bottomSheet: MatBottomSheet,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
+
+  async ngOnInit() {
+    await this.loadDogs();
+    await this.loadMatchCount();
+    this.loadFilters();
+
+    // Subscribe to router events à¹€à¸žà¸·à¹ˆà¸­ reload à¹€à¸¡à¸·à¹ˆà¸­à¸à¸¥à¸±à¸šà¸¡à¸²à¸ˆà¸²à¸à¸«à¸™à¹‰à¸² preferences
+    this.routerSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        if (event.url === '/match') {
+          this.loadFilters();
+          this.loadDogs();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.routerSubscription?.unsubscribe();
+  }
+
+  async loadDogs() {
+    this.isLoading.set(true);
+    try {
+      console.log('Loading dogs with filters:', this.filters());
+      const dogs = await this.dogService.getDogs(this.filters());
+      console.log('Dogs loaded:', dogs.length, 'dogs');
+      this.dogs.set(dogs);
+    } catch (error) {
+      console.error('Error loading dogs:', error);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async loadMatchCount() {
+    const matches = await this.dogService.getMatches();
+    this.matchCount.set(matches.length);
+  }
+
+  loadFilters() {
+    const saved = this.storage.getItem<DogFilters>('dog_filters');
+    console.log('Loading filters from storage:', saved);
+    if (saved) {
+      this.filters.set(saved);
+      console.log('Filters set to:', this.filters());
+    }
+  }
+
+  // Touch events for mobile
+  onTouchStart(event: TouchEvent) {
+    const touch = event.touches[0];
+    this.startDrag(touch.clientX, touch.clientY);
+  }
+
+  onTouchMove(event: TouchEvent) {
+    if (this.swipeState().isDragging) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      this.updateDrag(touch.clientX, touch.clientY);
+    }
+  }
+
+  onTouchEnd() {
+    this.endDrag();
+  }
+
+  // Mouse events for desktop
+  onMouseDown(event: MouseEvent) {
+    this.startDrag(event.clientX, event.clientY);
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent) {
+    if (this.swipeState().isDragging) {
+      this.updateDrag(event.clientX, event.clientY);
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp() {
+    if (this.swipeState().isDragging) {
+      this.endDrag();
+    }
+  }
+
+  // Keyboard events
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent) {
+    if (!this.currentDog()) return;
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.pass();
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        this.like();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.favorite();
+        break;
+      case 'z':
+      case 'Z':
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          this.undo();
+        }
+        break;
+    }
+  }
+
+  // Mouse wheel events
+  @HostListener('wheel', ['$event'])
+  onWheel(event: WheelEvent) {
+    if (!this.currentDog()) return;
+
+    // Prevent default scrolling
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+      event.preventDefault();
+
+      // Horizontal scroll
+      if (event.deltaX > 20) {
+        this.like();
+      } else if (event.deltaX < -20) {
+        this.pass();
+      }
+    } else if (event.deltaY !== 0) {
+      // Vertical scroll
+      if (event.deltaY < -20) {
+        event.preventDefault();
+        this.favorite();
+      }
+    }
+  }
+
+  private startDrag(x: number, y: number) {
+    const state = this.swipeEngine.calculateSwipeState(x, y, x, y, true);
+    this.swipeState.set(state);
+  }
+
+  private updateDrag(x: number, y: number) {
+    const current = this.swipeState();
+    const state = this.swipeEngine.calculateSwipeState(
+      current.startX,
+      current.startY,
+      x,
+      y,
+      true
+    );
+    this.swipeState.set(state);
+  }
+
+  private async endDrag() {
+    const current = this.swipeState();
+    const result = this.swipeEngine.shouldTriggerSwipe(current);
+
+    if (result.triggered && result.action) {
+      await this.handleSwipe(result.action);
+    } else {
+      // Snap back
+      this.swipeState.set({
+        ...current,
+        isDragging: false,
+        deltaX: 0,
+        deltaY: 0,
+        rotation: 0,
+        opacity: 1,
+        direction: 'none'
+      });
+    }
+  }
+
+  async handleSwipe(action: 'pass' | 'like' | 'favorite') {
+    const dog = this.currentDog();
+    if (!dog) return;
+
+    // Animate out
+    const current = this.swipeState();
+    const exitX = action === 'pass' ? -1000 : action === 'like' ? 1000 : 0;
+    const exitY = action === 'favorite' ? -1000 : 0;
+
+    this.swipeState.set({
+      ...current,
+      currentX: exitX,
+      currentY: exitY,
+      opacity: 0
+    });
+
+    // Submit swipe
+    setTimeout(async () => {
+      const result = await this.dogService.submitSwipe(dog.id, action);
+
+      if (result.isMatch) {
+        this.matchCount.set(this.matchCount() + 1);
+        this.showMatchDialog(result.match!);
+      }
+
+      // Remove card
+      this.dogs.set(this.dogs().slice(1));
+
+      // Reset state
+      this.swipeState.set({
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        deltaX: 0,
+        deltaY: 0,
+        rotation: 0,
+        opacity: 1,
+        direction: 'none'
+      });
+
+      // Load more dogs if running low
+      if (this.dogs().length < 3) {
+        await this.loadDogs();
+      }
+    }, 300);
+  }
+
+  // Button actions
+  pass() {
+    this.handleSwipe('pass');
+  }
+
+  like() {
+    this.handleSwipe('like');
+  }
+
+  favorite() {
+    this.handleSwipe('favorite');
+  }
+
+  async undo() {
+    const dog = await this.dogService.undoLastSwipe();
+    if (dog) {
+      this.dogs.set([dog, ...this.dogs()]);
+    }
+  }
+
+  showMatchDialog(match: any) {
+    this.snackBar.open(
+      `ðŸŽ‰ It's a match! You matched with ${match.dog.name}!`,
+      'View Profile',
+      {
+        duration: 5000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+        panelClass: ['match-snackbar']
+      }
+    );
+  }
+
+  openFilters() {
+    this.router.navigate(['/match-preferences']);
+  }
+
+  async openNotifications() {
+    const matches = await this.dogService.getMatches();
+    const { NotificationsPanel } = await import('../../components/notifications-panel/notifications-panel');
+
+    this.bottomSheet.open(NotificationsPanel, {
+      data: { matches },
+      panelClass: 'notifications-bottom-sheet'
+    });
+  }
+
+  openProfile() {
+    this.router.navigate(['/profile']);
+  }
+
+  getCardTransform(): string {
+    return this.swipeEngine.getCardTransform(this.swipeState());
+  }
+
+  getOverlayLabel() {
+    return this.swipeEngine.getOverlayLabel(this.swipeState().direction);
+  }
+}
+
+```
+
+## File: src/app/pages/match-preferences/match-preferences.ts
+```ts
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { ACTIVITY_OPTIONS, BREED_OPTIONS } from '../../models/dog.model';
+import { StorageService } from '../../services/storage';
+
+@Component({
+  selector: 'app-match-preferences',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSliderModule,
+    MatChipsModule,
+    MatCheckboxModule,
+    MatSlideToggleModule
+  ],
+  templateUrl: './match-preferences.html',
+  styleUrl: './match-preferences.scss'
+})
+export class MatchPreferences implements OnInit {
+  preferencesForm!: FormGroup;
+
+  breeds = BREED_OPTIONS;
+  activities = ACTIVITY_OPTIONS;
+
+  sizes = [
+    { value: 'toy', label: 'Toy', desc: 'up to 4 kg' },
+    { value: 'small', label: 'Small', desc: '5-10 kg' },
+    { value: 'medium', label: 'Medium', desc: '11-25 kg' },
+    { value: 'large', label: 'Large', desc: '26-44 kg' },
+    { value: 'giant', label: 'Giant', desc: 'over 45 kg' }
+  ];
+
+  energyLevels = [
+    { value: 'low', label: 'Low', icon: 'ðŸŒ' },
+    { value: 'moderate', label: 'Moderate', icon: 'ðŸ•' },
+    { value: 'high', label: 'High', icon: 'âš¡' },
+    { value: 'very-high', label: 'Very High', icon: 'ðŸš€' }
+  ];
+
+  constructor(
+    private fb: FormBuilder,
+    private storage: StorageService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    const savedPreferences = this.storage.getItem<any>('match_preferences');
+
+    this.preferencesForm = this.fb.group({
+      ageMin: [savedPreferences?.ageRange?.min || 0],
+      ageMax: [savedPreferences?.ageRange?.max || 15],
+      radiusKm: [savedPreferences?.radiusKm || 50],
+      sizes: [savedPreferences?.sizes || []],
+      energyLevels: [savedPreferences?.energyLevels || []],
+      breeds: [savedPreferences?.breeds || []],
+      activities: [savedPreferences?.activities || []]
+    });
+  }
+
+  toggleSize(size: string): void {
+    const sizes = this.preferencesForm.get('sizes')?.value || [];
+    const index = sizes.indexOf(size);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedSizes = index >= 0
+      ? sizes.filter((s: string) => s !== size)
+      : [...sizes, size];
+
+    this.preferencesForm.patchValue({ sizes: updatedSizes });
+  }
+
+  isSizeSelected(size: string): boolean {
+    const sizes = this.preferencesForm.get('sizes')?.value || [];
+    return sizes.includes(size);
+  }
+
+  toggleEnergy(energy: string): void {
+    const energyLevels = this.preferencesForm.get('energyLevels')?.value || [];
+    const index = energyLevels.indexOf(energy);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedLevels = index >= 0
+      ? energyLevels.filter((e: string) => e !== energy)
+      : [...energyLevels, energy];
+
+    this.preferencesForm.patchValue({ energyLevels: updatedLevels });
+  }
+
+  isEnergySelected(energy: string): boolean {
+    const energyLevels = this.preferencesForm.get('energyLevels')?.value || [];
+    return energyLevels.includes(energy);
+  }
+
+  toggleBreed(breed: string): void {
+    const breeds = this.preferencesForm.get('breeds')?.value || [];
+    const index = breeds.indexOf(breed);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedBreeds = index >= 0
+      ? breeds.filter((b: string) => b !== breed)
+      : [...breeds, breed];
+
+    this.preferencesForm.patchValue({ breeds: updatedBreeds });
+  }
+
+  isBreedSelected(breed: string): boolean {
+    const breeds = this.preferencesForm.get('breeds')?.value || [];
+    return breeds.includes(breed);
+  }
+
+  toggleActivity(activity: string): void {
+    const activities = this.preferencesForm.get('activities')?.value || [];
+    const index = activities.indexOf(activity);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedActivities = index >= 0
+      ? activities.filter((a: string) => a !== activity)
+      : [...activities, activity];
+
+    this.preferencesForm.patchValue({ activities: updatedActivities });
+  }
+
+  isActivitySelected(activity: string): boolean {
+    const activities = this.preferencesForm.get('activities')?.value || [];
+    return activities.includes(activity);
+  }
+
+  savePreferences(): void {
+    const formValue = this.preferencesForm.value;
+
+    const preferences = {
+      radiusKm: formValue.radiusKm,
+      breeds: formValue.breeds,
+      ageRange: {
+        min: formValue.ageMin,
+        max: formValue.ageMax
+      },
+      sizes: formValue.sizes,
+      energyLevels: formValue.energyLevels,
+      activities: formValue.activities
+    };
+
+    console.log('Saving preferences:', preferences);
+
+    // à¸šà¸±à¸™à¸—à¸¶à¸à¹€à¸›à¹‡à¸™ match_preferences à¹à¸¥à¸° dog_filters (à¹ƒà¸Šà¹‰à¸£à¹ˆà¸§à¸¡à¸à¸±à¸™)
+    this.storage.setItem('match_preferences', preferences);
+    this.storage.setItem('dog_filters', preferences);
+
+    // à¸à¸¥à¸±à¸šà¹„à¸›à¸«à¸™à¹‰à¸² match à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸à¸£à¸­à¸‡à¸—à¸±à¸™à¸—à¸µ
+    this.router.navigate(['/match']);
+  }
+
+  resetPreferences(): void {
+    this.preferencesForm.patchValue({
+      ageMin: 0,
+      ageMax: 15,
+      radiusKm: 50,
+      sizes: [],
+      energyLevels: [],
+      breeds: [],
+      activities: []
+    });
+  }
+
+  goBack(): void {
+    this.router.navigate(['/match']);
+  }
+}
+
+```
+
+## File: src/app/pages/sign-in/sign-in.ts
+```ts
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AuthService } from '../../services/auth';
+import { StorageService } from '../../services/storage';
+
+@Component({
+  selector: 'app-sign-in',
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule
+  ],
+  templateUrl: './sign-in.html',
+  styleUrl: './sign-in.scss',
+})
+export class SignIn {
+  email = signal('');
+  password = signal('');
+  isLoading = signal(false);
+  errorMessage = signal('');
+  hidePassword = signal(true);
+
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private storage: StorageService
+  ) {}
+
+  async signInWithGoogle() {
+    // Mock Google sign-in - in real app would integrate with Google OAuth
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    const result = await this.authService.signIn({
+      email: 'demo@pawmatch.com',
+      password: 'password123'
+    });
+
+    this.isLoading.set(false);
+
+    if (result.success) {
+      // Check if user has already registered a dog
+      const myDog = this.storage.getItem('myDog');
+      if (myDog) {
+        this.router.navigate(['/match']);
+      } else {
+        this.router.navigate(['/register-dog']);
+      }
+    } else {
+      this.errorMessage.set(result.error || 'Sign in failed');
+    }
+  }
+
+  async signInWithEmail() {
+    if (!this.email() || !this.password()) {
+      this.errorMessage.set('Please enter email and password');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    const result = await this.authService.signIn({
+      email: this.email(),
+      password: this.password()
+    });
+
+    this.isLoading.set(false);
+
+    if (result.success) {
+      // Check if user has already registered a dog
+      const myDog = this.storage.getItem('myDog');
+      if (myDog) {
+        this.router.navigate(['/match']);
+      } else {
+        this.router.navigate(['/register-dog']);
+      }
+    } else {
+      this.errorMessage.set(result.error || 'Sign in failed');
+    }
+  }
+
+  togglePasswordVisibility() {
+    this.hidePassword.set(!this.hidePassword());
+  }
+}
+
+```
+
+## File: src/app/pages/register-dog/register-dog.ts
+```ts
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { trigger, transition, style, animate } from '@angular/animations';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSliderModule } from '@angular/material/slider';
+import { ACTIVITY_OPTIONS, BREED_OPTIONS } from '../../models/dog.model';
+import { StorageService } from '../../services/storage';
+import { ImageUploadComponent } from '../../components/image-upload/image-upload';
+
+@Component({
+  selector: 'app-register-dog',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSelectModule,
+    MatAutocompleteModule,
+    MatRadioModule,
+    MatCheckboxModule,
+    MatChipsModule,
+    MatProgressBarModule,
+    MatSliderModule,
+    ImageUploadComponent
+  ],
+  templateUrl: './register-dog.html',
+  styleUrl: './register-dog.scss',
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
+})
+export class RegisterDog implements OnInit {
+  dogForm!: FormGroup;
+  currentStep = signal(1);
+  totalSteps = 3;
+  dogImageUrl = signal<string | null>(null);
+
+  breeds = BREED_OPTIONS;
+  filteredBreeds = signal<string[]>(BREED_OPTIONS);
+  activities = ACTIVITY_OPTIONS;
+
+  // Thai Provinces in English
+  provinces = [
+    'Amnat Charoen', 'Ang Thong', 'Bangkok', 'Bueng Kan', 'Buri Ram',
+    'Chachoengsao', 'Chai Nat', 'Chaiyaphum', 'Chanthaburi', 'Chiang Mai',
+    'Chiang Rai', 'Chon Buri', 'Chumphon', 'Kalasin', 'Kamphaeng Phet',
+    'Kanchanaburi', 'Khon Kaen', 'Krabi', 'Lampang', 'Lamphun',
+    'Loei', 'Lop Buri', 'Mae Hong Son', 'Maha Sarakham', 'Mukdahan',
+    'Nakhon Nayok', 'Nakhon Pathom', 'Nakhon Phanom', 'Nakhon Ratchasima', 'Nakhon Sawan',
+    'Nakhon Si Thammarat', 'Nan', 'Narathiwat', 'Nong Bua Lam Phu', 'Nong Khai',
+    'Nonthaburi', 'Pathum Thani', 'Pattani', 'Phang Nga', 'Phatthalung',
+    'Phayao', 'Phetchabun', 'Phetchaburi', 'Phichit', 'Phitsanulok',
+    'Phra Nakhon Si Ayutthaya', 'Phrae', 'Phuket', 'Prachin Buri', 'Prachuap Khiri Khan',
+    'Ranong', 'Ratchaburi', 'Rayong', 'Roi Et', 'Sa Kaeo',
+    'Sakon Nakhon', 'Samut Prakan', 'Samut Sakhon', 'Samut Songkhram', 'Saraburi',
+    'Satun', 'Sing Buri', 'Si Sa Ket', 'Songkhla', 'Sukhothai',
+    'Suphan Buri', 'Surat Thani', 'Surin', 'Tak', 'Trang',
+    'Trat', 'Ubon Ratchathani', 'Udon Thani', 'Uthai Thani', 'Uttaradit',
+    'Yala', 'Yasothon'
+  ];
+  filteredProvinces = signal<string[]>(this.provinces);
+
+  energyLevels = [
+    { value: 'low', label: 'Low', icon: 'ðŸŒ' },
+    { value: 'moderate', label: 'Moderate', icon: 'ðŸ•' },
+    { value: 'high', label: 'High', icon: 'âš¡' },
+    { value: 'very-high', label: 'Very High', icon: 'ðŸš€' }
+  ];
+
+  sizes = [
+    { value: 'toy', label: 'Toy', desc: 'up to 4 kg' },
+    { value: 'small', label: 'Small', desc: '5-10 kg' },
+    { value: 'medium', label: 'Medium', desc: '11-25 kg' },
+    { value: 'large', label: 'Large', desc: '26-44 kg' },
+    { value: 'giant', label: 'Giant', desc: 'over 45 kg' }
+  ];
+
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private storage: StorageService
+  ) {}
+
+  ngOnInit(): void {
+    this.dogForm = this.fb.group({
+      // Step 1: Basic Info
+      name: ['', [Validators.required, Validators.minLength(2)]],
+      breed: ['', Validators.required],
+      age: ['', [Validators.required, Validators.min(0), Validators.max(25)]],
+      gender: ['male', Validators.required],
+
+      // Step 2: Physical & Energy
+      size: ['', Validators.required],
+      energy: ['', Validators.required],
+
+      // Step 3: Activities & Bio
+      activities: [[], [Validators.required, Validators.minLength(1)]],
+      bio: ['', [Validators.maxLength(300)]],
+
+      // Location (auto-filled or user input)
+      city: ['Bangkok', Validators.required]
+    });
+  }
+
+  get progressPercentage(): number {
+    return (this.currentStep() / this.totalSteps) * 100;
+  }
+
+  nextStep(): void {
+    if (this.validateCurrentStep()) {
+      if (this.currentStep() < this.totalSteps) {
+        this.currentStep.set(this.currentStep() + 1);
+      }
+    }
+  }
+
+  previousStep(): void {
+    if (this.currentStep() > 1) {
+      this.currentStep.set(this.currentStep() - 1);
+    }
+  }
+
+  validateCurrentStep(): boolean {
+    const step = this.currentStep();
+
+    if (step === 1) {
+      const controls = ['name', 'breed', 'age', 'gender'];
+      return controls.every(control => this.dogForm.get(control)?.valid);
+    } else if (step === 2) {
+      const controls = ['size', 'energy'];
+      return controls.every(control => this.dogForm.get(control)?.valid);
+    } else if (step === 3) {
+      const controls = ['activities', 'bio'];
+      return controls.every(control => this.dogForm.get(control)?.valid);
+    }
+
+    return false;
+  }
+
+  toggleActivity(activity: string): void {
+    const activities = this.dogForm.get('activities')?.value || [];
+    const index = activities.indexOf(activity);
+
+    if (index >= 0) {
+      activities.splice(index, 1);
+    } else {
+      activities.push(activity);
+    }
+
+    this.dogForm.patchValue({ activities });
+  }
+
+  isActivitySelected(activity: string): boolean {
+    const activities = this.dogForm.get('activities')?.value || [];
+    return activities.includes(activity);
+  }
+
+  filterBreeds(value: string): void {
+    const filterValue = value.toLowerCase();
+    this.filteredBreeds.set(
+      this.breeds.filter(breed => breed.toLowerCase().includes(filterValue))
+    );
+  }
+
+  onBreedInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.filterBreeds(input.value);
+  }
+
+  filterProvinces(value: string): void {
+    const filterValue = value.toLowerCase();
+    this.filteredProvinces.set(
+      this.provinces.filter(province => province.toLowerCase().includes(filterValue))
+    );
+  }
+
+  onProvinceInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.filterProvinces(input.value);
+  }
+
+  async submitForm(): Promise<void> {
+    if (this.dogForm.valid) {
+      const dogProfile = {
+        ...this.dogForm.value,
+        id: Date.now().toString(),
+        imageUrl: this.dogImageUrl() || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
+        location: {
+          lat: 40.7128,
+          lng: -74.0060,
+          city: this.dogForm.value.city
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      this.storage.setItem('user_dog_profile', dogProfile);
+      this.router.navigate(['/match']);
+    }
+  }
+
+  onImageSelected(dataUrl: string): void {
+    this.dogImageUrl.set(dataUrl);
+  }
+
+  onImageRemoved(): void {
+    this.dogImageUrl.set(null);
+  }
+
+  get canProceed(): boolean {
+    return this.validateCurrentStep();
+  }
+}
+
+```
+
+## File: src/app/pages/profile-home/profile-home.ts
+```ts
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatListModule } from '@angular/material/list';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { AuthService } from '../../services/auth';
+import { MockDogService } from '../../services/mock-dog';
+import { StorageService } from '../../services/storage';
+import { ImageUploadComponent } from '../../components/image-upload/image-upload';
+import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog';
+
+@Component({
+  selector: 'app-profile-home',
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatDividerModule,
+    MatListModule,
+    MatDialogModule,
+    ImageUploadComponent
+  ],
+  templateUrl: './profile-home.html',
+  styleUrl: './profile-home.scss',
+})
+export class ProfileHome implements OnInit {
+  dogProfile = signal<any>(null);
+  matches = signal<any[]>([]);
+  stats = signal({
+    totalSwipes: 0,
+    matches: 0,
+    favorites: 0
+  });
+  isEditingImage = signal(false);
+
+  constructor(
+    public authService: AuthService,
+    private dogService: MockDogService,
+    private storage: StorageService,
+    private router: Router,
+    private dialog: MatDialog
+  ) {}
+
+  async ngOnInit() {
+    this.loadDogProfile();
+    await this.loadMatches();
+  }
+
+  loadDogProfile() {
+    const profile = this.storage.getItem('user_dog_profile');
+    if (profile) {
+      this.dogProfile.set(profile);
+    }
+  }
+
+  async loadMatches() {
+    const matches = await this.dogService.getMatches();
+    this.matches.set(matches);
+
+    // à¸”à¸¶à¸‡à¸ªà¸–à¸´à¸•à¸´à¸ˆà¸²à¸ service
+    const stats = this.dogService.getStats();
+    this.stats.set(stats);
+  }
+
+  editProfile() {
+    this.router.navigate(['/register-dog']);
+  }
+
+  toggleImageEdit() {
+    this.isEditingImage.set(!this.isEditingImage());
+  }
+
+  onImageSelected(dataUrl: string) {
+    const profile = this.dogProfile();
+    if (profile) {
+      profile.imageUrl = dataUrl;
+      profile.updatedAt = new Date();
+      this.storage.setItem('user_dog_profile', profile);
+      this.dogProfile.set(profile);
+      this.isEditingImage.set(false);
+    }
+  }
+
+  onImageRemoved() {
+    const profile = this.dogProfile();
+    if (profile) {
+      profile.imageUrl = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800';
+      profile.updatedAt = new Date();
+      this.storage.setItem('user_dog_profile', profile);
+      this.dogProfile.set(profile);
+    }
+  }
+
+  viewMatches() {
+    alert('Matches feature - coming soon!');
+  }
+
+  async clearMatches() {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      panelClass: 'confirm-dialog-container',
+      data: {
+        title: 'Clear All Matches?',
+        message: 'Are you sure you want to clear all matches? This action cannot be undone.',
+        confirmText: 'Clear Matches',
+        cancelText: 'Cancel',
+        icon: 'delete',
+        iconColor: '#F44336'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async (confirmed) => {
+      if (confirmed) {
+        await this.dogService.clearMatches();
+        await this.loadMatches();
+      }
+    });
+  }
+
+  async clearAllData() {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      panelClass: 'confirm-dialog-container',
+      data: {
+        title: 'Clear All Data?',
+        message: 'Are you sure you want to clear all matches and swipe history? This will reset everything and cannot be undone.',
+        confirmText: 'Clear All Data',
+        cancelText: 'Cancel',
+        icon: 'warning',
+        iconColor: '#FF8A00'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async (confirmed) => {
+      if (confirmed) {
+        await this.dogService.clearAll();
+        await this.loadMatches();
+      }
+    });
+  }
+
+  signOut() {
+    this.authService.signOut();
+  }
+
+  goToMatchPreferences() {
+    this.router.navigate(['/match-preferences']);
+  }
+
+  goBack() {
+    this.router.navigate(['/match']);
+  }
+}
+
+```
+
+## File: angular.json
+```json
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "pawmatch": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              },
+              "src/web.config",
+              "src/staticwebapp.config.json"
+            ],
+            "styles": [
+              "src/styles.scss"
+            ]
+          },
+          "configurations": {
+            "static": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2MB",
+                  "maximumError": "2MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2MB",
+                  "maximumError": "2MB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2MB",
+                  "maximumError": "2MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2MB",
+                  "maximumError": "2MB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "pawmatch:build:production"
+            },
+            "development": {
+              "buildTarget": "pawmatch:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular/build:extract-i18n"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.scss"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+
+```
+
+## File: package.json
+```json
+{
+  "name": "pawmatch",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --open",
+    "build": "ng build",
+    "build:prod": "ng build --configuration production",
+    "build:static": "ng build --configuration static",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless --code-coverage",
+    "lint": "ng lint",
+    "serve:ssr:pawmatch": "node dist/pawmatch/server/server.mjs"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^20.3.10",
+    "@angular/cdk": "^20.2.12",
+    "@angular/common": "^20.3.0",
+    "@angular/compiler": "^20.3.0",
+    "@angular/core": "^20.3.0",
+    "@angular/forms": "^20.3.0",
+    "@angular/material": "^20.2.12",
+    "@angular/platform-browser": "^20.3.0",
+    "@angular/platform-server": "^20.3.0",
+    "@angular/router": "^20.3.0",
+    "@angular/ssr": "^20.3.9",
+    "express": "^5.1.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^20.3.9",
+    "@angular/cli": "^20.3.9",
+    "@angular/compiler-cli": "^20.3.0",
+    "@types/express": "^5.0.1",
+    "@types/jasmine": "~5.1.0",
+    "@types/node": "^20.17.19",
+    "jasmine-core": "~5.9.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.9.2"
+  }
+}
+
+```

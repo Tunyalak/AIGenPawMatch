@@ -1,0 +1,7097 @@
+﻿# PawMatch - Dog Matching Application
+
+## Project Overview
+Angular 20 standalone component application for dog matching (Tinder-style for dogs)
+
+
+
+## File: src\app\components\confirm-dialog\confirm-dialog.html
+```html
+<div class="confirm-dialog">
+  <!-- Header -->
+  <div mat-dialog-title class="dialog-header">
+    <mat-icon [style.color]="data.iconColor">{{ data.icon }}</mat-icon>
+    <h2>{{ data.title }}</h2>
+  </div>
+
+  <!-- Content -->
+  <div mat-dialog-content class="dialog-content">
+    <p>{{ data.message }}</p>
+  </div>
+
+  <!-- Actions -->
+  <div mat-dialog-actions class="dialog-actions">
+    <button mat-stroked-button (click)="onCancel()" class="cancel-btn">
+      {{ data.cancelText }}
+    </button>
+    <button mat-raised-button color="primary" (click)="onConfirm()" class="confirm-btn">
+      {{ data.confirmText }}
+    </button>
+  </div>
+</div>
+
+```
+
+## File: src\app\components\confirm-dialog\confirm-dialog.scss
+```scss
+.confirm-dialog {
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 24px 16px 24px;
+    margin: 0;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2C2C2C;
+      margin: 0;
+    }
+  }
+
+  .dialog-content {
+    padding: 0 24px 24px 24px;
+    max-width: 400px;
+
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #666666;
+      margin: 0;
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px 24px 24px;
+    margin: 0;
+
+    button {
+      min-width: 100px;
+      border-radius: 24px !important;
+    }
+
+    .cancel-btn {
+      border-color: #E0E0E0 !important;
+      color: #666666 !important;
+
+      &:hover {
+        background-color: #F5F5F5 !important;
+      }
+    }
+
+    .confirm-btn {
+      background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%) !important;
+      color: white !important;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(246, 165, 31, 0.3);
+      }
+    }
+  }
+}
+
+::ng-deep {
+  .confirm-dialog-container {
+    .mat-mdc-dialog-container {
+      border-radius: 16px !important;
+      padding: 0 !important;
+    }
+  }
+}
+
+```
+
+## File: src\app\components\confirm-dialog\confirm-dialog.ts
+```ts
+import { Component, Inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+
+export interface ConfirmDialogData {
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  icon?: string;
+  iconColor?: string;
+}
+
+@Component({
+  selector: 'app-confirm-dialog',
+  standalone: true,
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  templateUrl: './confirm-dialog.html',
+  styleUrl: './confirm-dialog.scss'
+})
+export class ConfirmDialogComponent {
+  constructor(
+    public dialogRef: MatDialogRef<ConfirmDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: ConfirmDialogData
+  ) {
+    // Set defaults
+    this.data.confirmText = this.data.confirmText || 'Confirm';
+    this.data.cancelText = this.data.cancelText || 'Cancel';
+    this.data.icon = this.data.icon || 'warning';
+    this.data.iconColor = this.data.iconColor || '#FF8A00';
+  }
+
+  onCancel(): void {
+    this.dialogRef.close(false);
+  }
+
+  onConfirm(): void {
+    this.dialogRef.close(true);
+  }
+}
+
+```
+
+## File: src\app\components\image-upload\image-upload.html
+```html
+<div class="image-upload-container">
+  <!-- Drop Zone -->
+  <div
+    class="drop-zone"
+    [class.dragging]="isDragging()"
+    [class.has-image]="previewUrl()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    (click)="!previewUrl() && triggerFileInput()"
+  >
+    @if (isProcessing()) {
+      <div class="processing">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p>Processing image...</p>
+      </div>
+    } @else if (previewUrl()) {
+      <!-- Preview -->
+      <div class="preview">
+        <img [src]="previewUrl()" alt="Preview" [class.aspect-square]="aspectRatio === 'square'">
+        <div class="preview-overlay">
+          <button mat-icon-button class="change-btn" (click)="triggerFileInput(); $event.stopPropagation()">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button class="remove-btn" (click)="removeImage(); $event.stopPropagation()">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <!-- Upload Prompt -->
+      <div class="upload-prompt">
+        <mat-icon class="upload-icon">cloud_upload</mat-icon>
+        <h3>{{ buttonText }}</h3>
+        <p>Drag & drop or click to browse</p>
+        <span class="hint">JPEG, PNG, WebP â€¢ Max 5MB â€¢ Min 256x256px</span>
+      </div>
+    }
+  </div>
+
+  <!-- Hidden File Input -->
+  <input
+    type="file"
+    id="file-input"
+    accept="image/jpeg,image/png,image/webp"
+    (change)="onFileSelected($event)"
+    style="display: none"
+  >
+
+  <!-- Error Message -->
+  @if (errorMessage()) {
+    <div class="error-message">
+      <mat-icon>error</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+</div>
+
+```
+
+## File: src\app\components\image-upload\image-upload.scss
+```scss
+.image-upload-container {
+  width: 100%;
+  margin: 16px 0;
+
+  .drop-zone {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    border: 2px dashed #CCCCCC;
+    border-radius: 16px;
+    background: #F9F9F9;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+
+    &:hover {
+      border-color: #F6A51F;
+      background: #FFF5E6;
+    }
+
+    &.dragging {
+      border-color: #FF8A00;
+      background: #FFF5E6;
+      border-width: 3px;
+    }
+
+    &.has-image {
+      border: none;
+      cursor: default;
+      min-height: 320px;
+    }
+
+    .processing {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 280px;
+      gap: 16px;
+
+      p {
+        color: #666666;
+        font-size: 14px;
+      }
+    }
+
+    .preview {
+      position: relative;
+      width: 100%;
+      height: 100%;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 16px;
+
+        &.aspect-square {
+          aspect-ratio: 1;
+          max-height: 400px;
+        }
+      }
+
+      .preview-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        border-radius: 16px;
+
+        button {
+          background: white;
+          color: #2C2C2C;
+          width: 56px;
+          height: 56px;
+
+          mat-icon {
+            font-size: 28px;
+            width: 28px;
+            height: 28px;
+          }
+
+          &.remove-btn {
+            background: #F44336;
+            color: white;
+          }
+
+          &:hover {
+            transform: scale(1.1);
+          }
+        }
+      }
+
+      &:hover .preview-overlay {
+        opacity: 1;
+      }
+    }
+
+    .upload-prompt {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 280px;
+      padding: 32px;
+      text-align: center;
+
+      .upload-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        color: #F6A51F;
+        margin-bottom: 16px;
+      }
+
+      h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #2C2C2C;
+        margin: 0 0 8px 0;
+      }
+
+      p {
+        font-size: 14px;
+        color: #666666;
+        margin: 0 0 12px 0;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #999999;
+      }
+    }
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: #FFEBEE;
+    border-radius: 8px;
+    color: #D32F2F;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    span {
+      font-size: 14px;
+      flex: 1;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .image-upload-container {
+    .drop-zone {
+      min-height: 240px;
+
+      &.has-image {
+        min-height: 280px;
+      }
+
+      .upload-prompt {
+        height: 240px;
+        padding: 24px;
+
+        .upload-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+        }
+
+        h3 {
+          font-size: 18px;
+        }
+      }
+
+      .preview {
+        .preview-overlay {
+          button {
+            width: 48px;
+            height: 48px;
+
+            mat-icon {
+              font-size: 24px;
+              width: 24px;
+              height: 24px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+```
+
+## File: src\app\components\image-upload\image-upload.ts
+```ts
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ImageCompressionService } from '../../services/image-compression';
+
+@Component({
+  selector: 'app-image-upload',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule
+  ],
+  templateUrl: './image-upload.html',
+  styleUrl: './image-upload.scss'
+})
+export class ImageUploadComponent {
+  @Input() initialImage?: string;
+  @Input() buttonText = 'Upload Photo';
+  @Input() aspectRatio: 'square' | 'wide' = 'square';
+  @Output() imageSelected = new EventEmitter<string>();
+  @Output() imageRemoved = new EventEmitter<void>();
+
+  previewUrl = signal<string | null>(null);
+  isDragging = signal(false);
+  isProcessing = signal(false);
+  errorMessage = signal<string | null>(null);
+
+  constructor(private imageCompression: ImageCompressionService) {}
+
+  ngOnInit() {
+    if (this.initialImage) {
+      this.previewUrl.set(this.initialImage);
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(true);
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+  }
+
+  async onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      await this.processFile(files[0]);
+    }
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.processFile(input.files[0]);
+    }
+  }
+
+  async processFile(file: File) {
+    this.errorMessage.set(null);
+    this.isProcessing.set(true);
+
+    try {
+      // Validate image
+      const validation = await this.imageCompression.validateImage(file);
+      if (!validation.valid) {
+        this.errorMessage.set(validation.error || 'Invalid image');
+        this.isProcessing.set(false);
+        return;
+      }
+
+      // Compress and convert to WebP
+      const compressedDataUrl = await this.imageCompression.compressImage(file, {
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.8,
+        format: 'webp'
+      });
+
+      this.previewUrl.set(compressedDataUrl);
+      this.imageSelected.emit(compressedDataUrl);
+    } catch (error) {
+      this.errorMessage.set('Failed to process image. Please try another file.');
+      console.error('Image processing error:', error);
+    } finally {
+      this.isProcessing.set(false);
+    }
+  }
+
+  removeImage() {
+    const currentUrl = this.previewUrl();
+    if (currentUrl && currentUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(currentUrl);
+    }
+    this.previewUrl.set(null);
+    this.errorMessage.set(null);
+    this.imageRemoved.emit();
+  }
+
+  triggerFileInput() {
+    const fileInput = document.getElementById('file-input') as HTMLInputElement;
+    fileInput?.click();
+  }
+}
+
+```
+
+## File: src\app\components\notifications-panel\notifications-panel.html
+```html
+<div class="notifications-panel">
+  <!-- Header -->
+  <div class="panel-header">
+    <h2>Notifications</h2>
+    <button mat-icon-button (click)="close()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="panel-content">
+    @if (data.matches.length === 0) {
+      <!-- Empty State -->
+      <div class="empty-state">
+        <mat-icon class="empty-icon">notifications_none</mat-icon>
+        <h3>No matches yet</h3>
+        <p>Keep swiping to find your perfect match!</p>
+      </div>
+    } @else {
+      <!-- Matches List -->
+      <div class="matches-list">
+        @for (match of data.matches; track match.id) {
+          <div class="match-item" (click)="viewMatch(match)">
+            <div class="match-avatar">
+              <img [src]="match.dog.imageUrl" [alt]="match.dog.name">
+              <div class="match-indicator">
+                <mat-icon class="heart-icon">favorite</mat-icon>
+              </div>
+            </div>
+
+            <div class="match-info">
+              <div class="match-header">
+                <h4>{{ match.dog.name }}</h4>
+                <span class="match-time">{{ getTimeAgo(match.matchedAt) }}</span>
+              </div>
+              <p class="match-message">
+                <mat-icon class="inline-icon">celebration</mat-icon>
+                It's a match! Say hello to {{ match.dog.name }}
+              </p>
+              <div class="match-details">
+                <span class="detail-tag">{{ match.dog.breed }}</span>
+                <span class="detail-tag">{{ match.dog.age }} years</span>
+                <span class="detail-tag">
+                  <mat-icon class="small-icon">location_on</mat-icon>
+                  {{ match.dog.location.city }}
+                </span>
+              </div>
+            </div>
+
+            <button mat-icon-button class="chevron-btn">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Footer -->
+  @if (data.matches.length > 0) {
+    <div class="panel-footer">
+      <button mat-button class="view-all-btn" (click)="close()">
+        View All Matches
+      </button>
+    </div>
+  }
+</div>
+
+```
+
+## File: src\app\components\notifications-panel\notifications-panel.scss
+```scss
+.notifications-panel {
+  background: white;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// Header
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: white;
+  border-bottom: 1px solid #E5E7EB;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .close-btn {
+    color: #6B7280;
+
+    &:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+  }
+}
+
+// Content
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #F9FAFB;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9CA3AF;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: #D1D5DB;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #6B7280;
+  }
+}
+
+// Matches List
+.matches-list {
+  padding: 8px 0;
+}
+
+.match-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #F9FAFB;
+  }
+
+  &:active {
+    background: #F3F4F6;
+  }
+}
+
+.match-avatar {
+  position: relative;
+  flex-shrink: 0;
+
+  img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #F6A51F;
+  }
+
+  .match-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 24px;
+    height: 24px;
+    background: #F6A51F;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+
+    .heart-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: white;
+    }
+  }
+}
+
+.match-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .match-time {
+    font-size: 12px;
+    color: #9CA3AF;
+    white-space: nowrap;
+  }
+}
+
+.match-message {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .inline-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #F6A51F;
+  }
+}
+
+.match-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  .detail-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: #F3F4F6;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #6B7280;
+
+    .small-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+.chevron-btn {
+  flex-shrink: 0;
+  color: #9CA3AF;
+}
+
+mat-divider {
+  margin: 0 24px;
+}
+
+// Footer
+.panel-footer {
+  padding: 16px 24px;
+  background: white;
+  border-top: 1px solid #E5E7EB;
+
+  .view-all-btn {
+    width: 100%;
+    height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #F6A51F;
+    text-transform: none;
+
+    &:hover {
+      background: #FFF8E7;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .match-item {
+    padding: 12px 16px;
+  }
+
+  .match-avatar img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .match-header h4 {
+    font-size: 15px;
+  }
+
+  .match-message {
+    font-size: 13px;
+  }
+
+  mat-divider {
+    margin: 0 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-header {
+    padding: 16px;
+
+    h2 {
+      font-size: 18px;
+    }
+  }
+
+  .match-item {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .match-avatar img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .match-details {
+    .detail-tag {
+      font-size: 11px;
+      padding: 3px 6px;
+    }
+  }
+}
+
+```
+
+## File: src\app\components\notifications-panel\notifications-panel.ts
+```ts
+import { Component, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
+import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet';
+
+@Component({
+  selector: 'app-notifications-panel',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatDividerModule
+  ],
+  templateUrl: './notifications-panel.html',
+  styleUrl: './notifications-panel.scss'
+})
+export class NotificationsPanel {
+  constructor(
+    @Inject(MAT_BOTTOM_SHEET_DATA) public data: { matches: any[] },
+    private bottomSheetRef: MatBottomSheetRef<NotificationsPanel>
+  ) {}
+
+  close(): void {
+    this.bottomSheetRef.dismiss();
+  }
+
+  viewMatch(match: any): void {
+    this.bottomSheetRef.dismiss(match);
+  }
+
+  getTimeAgo(date: Date): string {
+    const now = new Date();
+    const matchDate = new Date(date);
+    const diffMs = now.getTime() - matchDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return matchDate.toLocaleDateString();
+  }
+}
+
+```
+
+## File: src\app\guards\auth.guard.ts
+```ts
+import { inject } from '@angular/core';
+import { Router, CanActivateFn } from '@angular/router';
+import { AuthService } from '../services/auth';
+
+export const authGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (authService.checkAuth()) {
+    return true;
+  }
+
+  // Redirect to sign-in with return URL
+  router.navigate(['/sign-in'], {
+    queryParams: { returnUrl: state.url }
+  });
+  return false;
+};
+
+```
+
+## File: src\app\models\auth.model.ts
+```ts
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: Date;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+}
+
+```
+
+## File: src\app\models\dog.model.ts
+```ts
+export interface Dog {
+  id: string;
+  name: string;
+  breed: string;
+  age: number;
+  gender: 'male' | 'female';
+  size: 'toy' | 'small' | 'medium' | 'large' | 'giant';
+  energy: 'low' | 'moderate' | 'high' | 'very-high';
+  activities: string[];
+  bio: string;
+  imageUrl: string;
+  location: {
+    lat: number;
+    lng: number;
+    city: string;
+  };
+  ownerId: string;
+  ownerName: string;
+}
+
+export interface DogProfile extends Dog {
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SwipeAction {
+  dogId: string;
+  action: 'pass' | 'like' | 'favorite';
+  timestamp: Date;
+}
+
+export interface Match {
+  id: string;
+  dog: Dog;
+  matchedAt: Date;
+  chatId?: string;
+}
+
+export interface DogFilters {
+  radiusKm: number;
+  breeds: string[];
+  ageRange: { min: number; max: number };
+  sizes: ('toy' | 'small' | 'medium' | 'large' | 'giant')[];
+  energyLevels: ('low' | 'moderate' | 'high' | 'very-high')[];
+  activities: string[];
+}
+
+export const DEFAULT_FILTERS: DogFilters = {
+  radiusKm: 50,
+  breeds: [],
+  ageRange: { min: 0, max: 15 },
+  sizes: [],
+  energyLevels: [],
+  activities: []
+};
+
+export const ACTIVITY_OPTIONS = [
+  'Walking',
+  'Running',
+  'Hiking',
+  'Swimming',
+  'Fetch',
+  'Agility',
+  'Dog Parks',
+  'Beach',
+  'Camping',
+  'Training'
+];
+
+export const BREED_OPTIONS = [
+  'Australian Shepherd',
+  'Beagle',
+  'Border Collie',
+  'Boston Terrier',
+  'Boxer',
+  'Bulldog',
+  'Cavalier King Charles Spaniel',
+  'Dachshund',
+  'Doberman Pinscher',
+  'French Bulldog',
+  'German Shepherd',
+  'German Shorthaired Pointer',
+  'Golden Retriever',
+  'Great Dane',
+  'Labrador Retriever',
+  'Miniature Schnauzer',
+  'Mixed Breed',
+  'Pembroke Welsh Corgi',
+  'Pomeranian',
+  'Poodle',
+  'Rottweiler',
+  'Shih Tzu',
+  'Siberian Husky',
+  'Yorkshire Terrier'
+];
+
+```
+
+## File: src\app\pages\match-preferences\match-preferences.html
+```html
+<div class="preferences-container">
+  <!-- Header -->
+  <div class="header">
+    <button mat-icon-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Match Preferences</h1>
+    <button mat-icon-button (click)="resetPreferences()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="content">
+    <form [formGroup]="preferencesForm">
+
+      <!-- Age Range -->
+      <div class="preference-section">
+        <h3>Age Range</h3>
+        <div class="slider-container">
+          <label>{{ preferencesForm.get('ageMin')?.value }} - {{ preferencesForm.get('ageMax')?.value }} years</label>
+          <div class="dual-slider">
+            <mat-slider min="0" max="15" step="1" discrete>
+              <input matSliderStartThumb formControlName="ageMin">
+              <input matSliderEndThumb formControlName="ageMax">
+            </mat-slider>
+          </div>
+        </div>
+      </div>
+
+      <!-- Distance -->
+      <div class="preference-section">
+        <h3>Maximum Distance</h3>
+        <div class="slider-container">
+          <label>{{ preferencesForm.get('radiusKm')?.value }} km</label>
+          <mat-slider min="5" max="100" step="5" discrete>
+            <input matSliderThumb formControlName="radiusKm">
+          </mat-slider>
+        </div>
+      </div>
+
+      <!-- Size Preferences -->
+      <div class="preference-section">
+        <h3>Size Preferences</h3>
+        <p class="helper-text">Select preferred dog sizes (leave empty for all sizes)</p>
+        <div class="chips-grid">
+          @for (size of sizes; track size.value) {
+            <div
+              class="chip-option"
+              [class.selected]="isSizeSelected(size.value)"
+              (click)="toggleSize(size.value)"
+            >
+              <div class="chip-content">
+                <span class="chip-label">{{ size.label }}</span>
+                <span class="chip-desc">{{ size.desc }}</span>
+              </div>
+              @if (isSizeSelected(size.value)) {
+                <mat-icon class="check-icon">check_circle</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Energy Level -->
+      <div class="preference-section">
+        <h3>Energy Level</h3>
+        <p class="helper-text">Select preferred energy levels (leave empty for all levels)</p>
+        <div class="chips-grid">
+          @for (energy of energyLevels; track energy.value) {
+            <div
+              class="chip-option"
+              [class.selected]="isEnergySelected(energy.value)"
+              (click)="toggleEnergy(energy.value)"
+            >
+              <div class="chip-content">
+                <span class="energy-icon">{{ energy.icon }}</span>
+                <span class="chip-label">{{ energy.label }}</span>
+              </div>
+              @if (isEnergySelected(energy.value)) {
+                <mat-icon class="check-icon">check_circle</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Breed Preferences -->
+      <div class="preference-section">
+        <h3>Breed Preferences</h3>
+        <p class="helper-text">Select preferred breeds (leave empty for all breeds)</p>
+        <div class="chips-wrap">
+          @for (breed of breeds; track breed) {
+            <div
+              class="chip-small"
+              [class.selected]="isBreedSelected(breed)"
+              (click)="toggleBreed(breed)"
+            >
+              {{ breed }}
+              @if (isBreedSelected(breed)) {
+                <mat-icon>check</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Activity Preferences -->
+      <div class="preference-section">
+        <h3>Activity Preferences</h3>
+        <p class="helper-text">Select preferred activities (leave empty for all activities)</p>
+        <div class="chips-wrap">
+          @for (activity of activities; track activity) {
+            <div
+              class="chip-small"
+              [class.selected]="isActivitySelected(activity)"
+              (click)="toggleActivity(activity)"
+            >
+              {{ activity }}
+              @if (isActivitySelected(activity)) {
+                <mat-icon>check</mat-icon>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- Save Button -->
+  <div class="save-button-container">
+    <button mat-raised-button color="primary" (click)="savePreferences()">
+      <mat-icon>save</mat-icon>
+      Save Preferences
+    </button>
+  </div>
+</div>
+
+```
+
+## File: src\app\pages\match-preferences\match-preferences.scss
+```scss
+.preferences-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #FFF5E6 0%, #FFE4B5 100%);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 100px;
+}
+
+.preference-section {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .helper-text {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: #666;
+  }
+}
+
+.slider-container {
+  label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #F6A51F;
+    margin-bottom: 12px;
+  }
+
+  mat-slider {
+    width: 100%;
+  }
+}
+
+.chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.chip-option {
+  position: relative;
+  padding: 16px;
+  border: 2px solid #E0E0E0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  &:hover {
+    border-color: #F6A51F;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(246, 165, 31, 0.2);
+  }
+
+  &.selected {
+    border-color: #F6A51F;
+    background: #FFF8E7;
+
+    .check-icon {
+      color: #F6A51F;
+    }
+  }
+
+  .chip-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .chip-label {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .chip-desc {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .energy-icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+  }
+
+  .check-icon {
+    font-size: 20px;
+  }
+}
+
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border: 2px solid #E0E0E0;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  &:hover {
+    border-color: #F6A51F;
+    background: #FFF8E7;
+  }
+
+  &.selected {
+    border-color: #F6A51F;
+    background: #F6A51F;
+    color: white;
+    font-weight: 600;
+
+    mat-icon {
+      color: white;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.save-button-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+
+  button {
+    width: 100%;
+    height: 56px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 28px;
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .chips-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .chips-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+```
+
+## File: src\app\pages\match-preferences\match-preferences.ts
+```ts
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { ACTIVITY_OPTIONS, BREED_OPTIONS } from '../../models/dog.model';
+import { StorageService } from '../../services/storage';
+
+@Component({
+  selector: 'app-match-preferences',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSliderModule,
+    MatChipsModule,
+    MatCheckboxModule,
+    MatSlideToggleModule
+  ],
+  templateUrl: './match-preferences.html',
+  styleUrl: './match-preferences.scss'
+})
+export class MatchPreferences implements OnInit {
+  preferencesForm!: FormGroup;
+
+  breeds = BREED_OPTIONS;
+  activities = ACTIVITY_OPTIONS;
+
+  sizes = [
+    { value: 'toy', label: 'Toy', desc: 'up to 4 kg' },
+    { value: 'small', label: 'Small', desc: '5-10 kg' },
+    { value: 'medium', label: 'Medium', desc: '11-25 kg' },
+    { value: 'large', label: 'Large', desc: '26-44 kg' },
+    { value: 'giant', label: 'Giant', desc: 'over 45 kg' }
+  ];
+
+  energyLevels = [
+    { value: 'low', label: 'Low', icon: 'ðŸŒ' },
+    { value: 'moderate', label: 'Moderate', icon: 'ðŸ•' },
+    { value: 'high', label: 'High', icon: 'âš¡' },
+    { value: 'very-high', label: 'Very High', icon: 'ðŸš€' }
+  ];
+
+  constructor(
+    private fb: FormBuilder,
+    private storage: StorageService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    const savedPreferences = this.storage.getItem<any>('match_preferences');
+
+    this.preferencesForm = this.fb.group({
+      ageMin: [savedPreferences?.ageRange?.min || 0],
+      ageMax: [savedPreferences?.ageRange?.max || 15],
+      radiusKm: [savedPreferences?.radiusKm || 50],
+      sizes: [savedPreferences?.sizes || []],
+      energyLevels: [savedPreferences?.energyLevels || []],
+      breeds: [savedPreferences?.breeds || []],
+      activities: [savedPreferences?.activities || []]
+    });
+  }
+
+  toggleSize(size: string): void {
+    const sizes = this.preferencesForm.get('sizes')?.value || [];
+    const index = sizes.indexOf(size);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedSizes = index >= 0
+      ? sizes.filter((s: string) => s !== size)
+      : [...sizes, size];
+
+    this.preferencesForm.patchValue({ sizes: updatedSizes });
+  }
+
+  isSizeSelected(size: string): boolean {
+    const sizes = this.preferencesForm.get('sizes')?.value || [];
+    return sizes.includes(size);
+  }
+
+  toggleEnergy(energy: string): void {
+    const energyLevels = this.preferencesForm.get('energyLevels')?.value || [];
+    const index = energyLevels.indexOf(energy);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedLevels = index >= 0
+      ? energyLevels.filter((e: string) => e !== energy)
+      : [...energyLevels, energy];
+
+    this.preferencesForm.patchValue({ energyLevels: updatedLevels });
+  }
+
+  isEnergySelected(energy: string): boolean {
+    const energyLevels = this.preferencesForm.get('energyLevels')?.value || [];
+    return energyLevels.includes(energy);
+  }
+
+  toggleBreed(breed: string): void {
+    const breeds = this.preferencesForm.get('breeds')?.value || [];
+    const index = breeds.indexOf(breed);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedBreeds = index >= 0
+      ? breeds.filter((b: string) => b !== breed)
+      : [...breeds, breed];
+
+    this.preferencesForm.patchValue({ breeds: updatedBreeds });
+  }
+
+  isBreedSelected(breed: string): boolean {
+    const breeds = this.preferencesForm.get('breeds')?.value || [];
+    return breeds.includes(breed);
+  }
+
+  toggleActivity(activity: string): void {
+    const activities = this.preferencesForm.get('activities')?.value || [];
+    const index = activities.indexOf(activity);
+
+    // Create a new array instead of mutating to ensure change detection
+    const updatedActivities = index >= 0
+      ? activities.filter((a: string) => a !== activity)
+      : [...activities, activity];
+
+    this.preferencesForm.patchValue({ activities: updatedActivities });
+  }
+
+  isActivitySelected(activity: string): boolean {
+    const activities = this.preferencesForm.get('activities')?.value || [];
+    return activities.includes(activity);
+  }
+
+  savePreferences(): void {
+    const formValue = this.preferencesForm.value;
+
+    const preferences = {
+      radiusKm: formValue.radiusKm,
+      breeds: formValue.breeds,
+      ageRange: {
+        min: formValue.ageMin,
+        max: formValue.ageMax
+      },
+      sizes: formValue.sizes,
+      energyLevels: formValue.energyLevels,
+      activities: formValue.activities
+    };
+
+    console.log('Saving preferences:', preferences);
+
+    // à¸šà¸±à¸™à¸—à¸¶à¸à¹€à¸›à¹‡à¸™ match_preferences à¹à¸¥à¸° dog_filters (à¹ƒà¸Šà¹‰à¸£à¹ˆà¸§à¸¡à¸à¸±à¸™)
+    this.storage.setItem('match_preferences', preferences);
+    this.storage.setItem('dog_filters', preferences);
+
+    // à¸à¸¥à¸±à¸šà¹„à¸›à¸«à¸™à¹‰à¸² match à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸à¸£à¸­à¸‡à¸—à¸±à¸™à¸—à¸µ
+    this.router.navigate(['/match']);
+  }
+
+  resetPreferences(): void {
+    this.preferencesForm.patchValue({
+      ageMin: 0,
+      ageMax: 15,
+      radiusKm: 50,
+      sizes: [],
+      energyLevels: [],
+      breeds: [],
+      activities: []
+    });
+  }
+
+  goBack(): void {
+    this.router.navigate(['/match']);
+  }
+}
+
+```
+
+## File: src\app\pages\match-swipe\match-swipe.html
+```html
+<div class="match-container">
+  <!-- Header -->
+  <div class="header">
+    <button mat-icon-button (click)="openProfile()">
+      <mat-icon>person</mat-icon>
+    </button>
+
+    <div class="logo">
+      <svg width="40" height="40" viewBox="0 0 49 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16.8499 19.276L7.30524 28.8139C5.456 30.6652 4.41728 33.175 4.41728 35.7917C4.41728 38.4084 5.456 40.9181 7.30524 42.7695C9.15661 44.6188 11.6663 45.6575 14.2831 45.6575C16.8998 45.6575 19.4095 44.6188 21.2609 42.7695L23.8226 40.2044L16.8465 33.2282C15.9304 32.312 15.2037 31.2243 14.708 30.0272C14.2124 28.8301 13.9574 27.5471 13.9577 26.2514C13.9581 24.9557 14.2136 23.6728 14.7099 22.476C15.2061 21.2791 15.9333 20.1917 16.8499 19.276Z" fill="#F7B327"/>
+        <path d="M30.8021 19.276C31.7185 20.192 32.4454 21.2795 32.9414 22.4765C33.4374 23.6735 33.6926 24.9564 33.6926 26.2521C33.6926 27.5478 33.4374 28.8308 32.9414 30.0277C32.4454 31.2247 31.7185 32.3123 30.8021 33.2282L23.826 40.2044L26.3912 42.7695C28.242 44.6185 30.7511 45.6572 33.3673 45.6572C35.9835 45.6572 38.4926 44.6185 40.3434 42.7695C41.2599 41.8532 41.9869 40.7654 42.4829 39.5681C42.9789 38.3709 43.2342 37.0876 43.2342 35.7917C43.2342 34.4957 42.9789 33.2125 42.4829 32.0152C41.9869 30.818 41.2599 29.7301 40.3434 28.8139L30.8021 19.276Z" fill="#F7B327"/>
+        <path d="M30.8022 19.276C29.8862 18.3596 28.7986 17.6327 27.6017 17.1367C26.4047 16.6408 25.1217 16.3855 23.8261 16.3855C22.5304 16.3855 21.2474 16.6408 20.0504 17.1367C18.8534 17.6327 17.7659 18.3596 16.8499 19.276C15.9336 20.192 15.2066 21.2795 14.7107 22.4765C14.2147 23.6735 13.9594 24.9564 13.9594 26.2521C13.9594 27.5478 14.2147 28.8307 14.7107 30.0277C15.2066 31.2247 15.9336 32.3122 16.8499 33.2282L23.8261 40.2043L30.8022 33.2282C31.7185 32.3122 32.4455 31.2247 32.9414 30.0277C33.4374 28.8307 33.6927 27.5478 33.6927 26.2521C33.6927 24.9564 33.4374 23.6735 32.9414 22.4765C32.4455 21.2795 31.7185 20.192 30.8022 19.276ZM26.8085 29.221C26.2187 29.8108 25.4672 30.2124 24.6491 30.3751C23.831 30.5378 22.983 30.4542 22.2124 30.135C21.4417 29.8158 20.7831 29.2752 20.3197 28.5816C19.8563 27.8881 19.6089 27.0727 19.6089 26.2385C19.6089 25.4044 19.8563 24.589 20.3197 23.8954C20.7831 23.2019 21.4417 22.6613 22.2124 22.3421C22.983 22.0228 23.831 21.9393 24.6491 22.1019C25.4672 22.2646 26.2187 22.6663 26.8085 23.256C27.2007 23.6474 27.5117 24.1123 27.724 24.6241C27.9362 25.1359 28.0455 25.6845 28.0455 26.2385C28.0455 26.7926 27.9362 27.3412 27.724 27.8529C27.5117 28.3647 27.2007 28.8296 26.8085 29.221Z" fill="#EF7E06"/>
+        <path d="M5.473 22.2144C8.49566 22.2144 10.946 19.764 10.946 16.7414C10.946 13.7187 8.49566 11.2684 5.473 11.2684C2.45035 11.2684 0 13.7187 0 16.7414C0 19.764 2.45035 22.2144 5.473 22.2144Z" fill="#F7B327"/>
+        <path d="M16.4495 11.2344C19.4722 11.2344 21.9225 8.78409 21.9225 5.76144C21.9225 2.73878 19.4722 0.288437 16.4495 0.288437C13.4268 0.288437 10.9765 2.73878 10.9765 5.76144C10.9765 8.78409 13.4268 11.2344 16.4495 11.2344Z" fill="#F7B327"/>
+        <path d="M31.6335 10.946C34.6561 10.946 37.1065 8.49566 37.1065 5.47301C37.1065 2.45035 34.6561 7.62939e-06 31.6335 7.62939e-06C28.6108 7.62939e-06 26.1605 2.45035 26.1605 5.47301C26.1605 8.49566 28.6108 10.946 31.6335 10.946Z" fill="#F7B327"/>
+        <path d="M42.6134 21.9226C45.636 21.9226 48.0864 19.4722 48.0864 16.4495C48.0864 13.4269 45.636 10.9765 42.6134 10.9765C39.5907 10.9765 37.1404 13.4269 37.1404 16.4495C37.1404 19.4722 39.5907 21.9226 42.6134 21.9226Z" fill="#F7B327"/>
+      </svg>
+    </div>
+
+    <button mat-icon-button (click)="openNotifications()" [matBadge]="matchCount()" matBadgeColor="warn">
+      <mat-icon [style.color]="matchCount() > 0 ? '#F6A51F' : 'inherit'">favorite</mat-icon>
+    </button>
+  </div>
+
+  <!-- Cards Stack -->
+  <div class="cards-container">
+    @if (isLoading()) {
+      <div class="loading">
+        <mat-icon>pets</mat-icon>
+        <p>Finding perfect matches...</p>
+      </div>
+    } @else if (dogs().length === 0) {
+      <div class="no-dogs">
+        <mat-icon>search_off</mat-icon>
+        <h2>No More Dogs</h2>
+        <p>Try adjusting your filters or check back later!</p>
+        <button mat-raised-button color="primary" (click)="openFilters()">
+          Adjust Filters
+        </button>
+      </div>
+    } @else {
+      <!-- Background Cards (for depth effect) -->
+      @if (dogs().length > 1) {
+        <div class="dog-card background-card" [style.z-index]="1">
+          <div class="card-image">
+            <img [src]="dogs()[1].imageUrl" [alt]="dogs()[1].name">
+          </div>
+        </div>
+      }
+
+      <!-- Current Card -->
+      @if (currentDog()) {
+        <div
+          class="dog-card current-card"
+          [style.transform]="getCardTransform()"
+          [style.opacity]="swipeState().opacity"
+          [style.z-index]="10"
+          (mousedown)="onMouseDown($event)"
+          (touchstart)="onTouchStart($event)"
+          (touchmove)="onTouchMove($event)"
+          (touchend)="onTouchEnd()"
+        >
+          <!-- Overlay Labels -->
+          @if (getOverlayLabel(); as label) {
+            <div class="overlay-label" [class]="label.class">
+              {{ label.text }}
+            </div>
+          }
+
+          <!-- Card Image -->
+          <div class="card-image">
+            <img [src]="currentDog()!.imageUrl" [alt]="currentDog()!.name">
+
+            <!-- Info Button -->
+            <button mat-mini-fab class="info-btn" (click)="$event.stopPropagation()">
+              <mat-icon>info</mat-icon>
+            </button>
+          </div>
+
+          <!-- Card Info -->
+          <div class="card-info">
+            <div class="dog-header">
+              <div>
+                <h2>{{ currentDog()!.name }}, {{ currentDog()!.age }}</h2>
+                <p class="breed">{{ currentDog()!.breed }}</p>
+              </div>
+              <div class="location">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ currentDog()!.location.city }}</span>
+              </div>
+            </div>
+
+            <div class="dog-tags">
+              <span class="tag size">{{ currentDog()!.size }}</span>
+              <span class="tag energy">{{ currentDog()!.energy }}</span>
+              @for (activity of currentDog()!.activities.slice(0, 2); track activity) {
+                <span class="tag activity">{{ activity }}</span>
+              }
+            </div>
+
+            <p class="bio">{{ currentDog()!.bio }}</p>
+
+            <div class="owner-info">
+              <mat-icon>person</mat-icon>
+              <span>Owner: {{ currentDog()!.ownerName }}</span>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Action Buttons -->
+  @if (!isLoading() && currentDog()) {
+    <div class="actions">
+      <button mat-mini-fab class="action-btn undo-btn" (click)="undo()" matTooltip="Undo (Ctrl+Z)">
+        <mat-icon>undo</mat-icon>
+      </button>
+
+      <button mat-fab class="action-btn pass-btn" (click)="pass()" matTooltip="Pass (â† or scroll left)">
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <button mat-fab class="action-btn favorite-btn" (click)="favorite()" matTooltip="Favorite (â†‘ or scroll up)">
+        <mat-icon>star</mat-icon>
+      </button>
+
+      <button mat-fab class="action-btn like-btn" (click)="like()" matTooltip="Like (â†’ or scroll right)">
+        <mat-icon>favorite</mat-icon>
+      </button>
+
+      <button mat-mini-fab class="action-btn filter-btn" (click)="openFilters()" matTooltip="Filters">
+        <mat-icon>tune</mat-icon>
+      </button>
+    </div>
+
+    <!-- Keyboard Hints -->
+    <div class="keyboard-hints">
+      <div class="hint">
+        <mat-icon>keyboard</mat-icon>
+        <span>Use arrow keys: â† Pass | â†‘ Favorite | â†’ Like</span>
+      </div>
+      <div class="hint">
+        <mat-icon>mouse</mat-icon>
+        <span>Scroll horizontally or vertically to swipe</span>
+      </div>
+    </div>
+  }
+</div>
+
+```
+
+## File: src\app\pages\match-swipe\match-swipe.scss
+```scss
+.match-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #FFF5E6 0%, #FFFFFF 100%);
+  overflow: hidden;
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    z-index: 100;
+
+    .logo {
+      svg {
+        display: block;
+      }
+    }
+
+    button {
+      color: #666666;
+    }
+  }
+
+  .cards-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: hidden;
+
+    .loading,
+    .no-dogs {
+      text-align: center;
+      color: #666666;
+
+      mat-icon {
+        font-size: 80px;
+        width: 80px;
+        height: 80px;
+        color: #F6A51F;
+        margin-bottom: 16px;
+      }
+
+      h2 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #2C2C2C;
+        margin: 16px 0 8px 0;
+      }
+
+      p {
+        font-size: 16px;
+        margin: 0 0 24px 0;
+      }
+
+      button {
+        border-radius: 24px !important;
+      }
+    }
+
+    .dog-card {
+      position: absolute;
+      width: 100%;
+      max-width: 400px;
+      height: 600px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      touch-action: none;
+
+      &.background-card {
+        transform: scale(0.95) translateY(10px);
+        opacity: 0.7;
+        filter: blur(2px);
+      }
+
+      &.current-card {
+        cursor: grab;
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+
+      .overlay-label {
+        position: absolute;
+        top: 40px;
+        padding: 16px 32px;
+        font-size: 48px;
+        font-weight: 900;
+        border: 4px solid;
+        border-radius: 12px;
+        transform: rotate(-20deg);
+        opacity: 0;
+        z-index: 10;
+        transition: opacity 0.2s;
+
+        &.pass {
+          left: 40px;
+          color: #F44336;
+          border-color: #F44336;
+          opacity: 1;
+        }
+
+        &.like {
+          right: 40px;
+          color: #4CAF50;
+          border-color: #4CAF50;
+          transform: rotate(20deg);
+          opacity: 1;
+        }
+
+        &.favorite {
+          left: 50%;
+          transform: translateX(-50%) rotate(0deg);
+          color: #FF8A00;
+          border-color: #FF8A00;
+          opacity: 1;
+        }
+      }
+
+      .card-image {
+        position: relative;
+        height: 380px;
+        background: #F5F5F5;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .info-btn {
+          position: absolute;
+          bottom: 16px;
+          right: 16px;
+          background: rgba(255, 255, 255, 0.9) !important;
+          color: #F6A51F !important;
+          display: none;
+        }
+      }
+
+      .card-info {
+        padding: 15px 20px;
+        height: 200px;
+        overflow-y: hidden;
+
+        .dog-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+
+          h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2C2C2C;
+            margin: 0 0 4px 0;
+          }
+
+          .breed {
+            font-size: 16px;
+            color: #666666;
+            margin: 0;
+          }
+
+          .location {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #999999;
+            font-size: 14px;
+
+            mat-icon {
+              font-size: 18px;
+              width: 18px;
+              height: 18px;
+            }
+          }
+        }
+
+        .dog-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 12px;
+
+          .tag {
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: capitalize;
+
+            &.size {
+              background: #E3F2FD;
+              color: #1976D2;
+            }
+
+            &.energy {
+              background: #FFF3E0;
+              color: #F57C00;
+            }
+
+            &.activity {
+              background: #F3E5F5;
+              color: #7B1FA2;
+            }
+          }
+        }
+
+        .bio {
+          font-size: 14px;
+          line-height: 1.6;
+          color: #666666;
+          margin: 0 0 12px 0;
+        }
+
+        .owner-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          color: #999999;
+
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+          }
+        }
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    background: white;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+
+    .action-btn {
+      transition: all 0.3s ease;
+
+      &:active {
+        transform: scale(0.9);
+      }
+
+      &.undo-btn {
+        background: #FFF3E0 !important;
+        color: #FF8A00 !important;
+      }
+
+      &.pass-btn {
+        background: #FFEBEE !important;
+        color: #F44336 !important;
+        width: 64px;
+        height: 64px;
+
+        mat-icon {
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+        }
+      }
+
+      &.favorite-btn {
+        background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%) !important;
+        color: white !important;
+        width: 72px;
+        height: 72px;
+
+        mat-icon {
+          font-size: 36px;
+          width: 36px;
+          height: 36px;
+        }
+
+        &:hover {
+          box-shadow: 0 8px 20px rgba(246, 165, 31, 0.4);
+        }
+      }
+
+      &.like-btn {
+        background: #E8F5E9 !important;
+        color: #4CAF50 !important;
+        width: 64px;
+        height: 64px;
+
+        mat-icon {
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+        }
+      }
+
+      &.filter-btn {
+        background: #F5F5F5 !important;
+        color: #666666 !important;
+      }
+
+      &:hover:not(:disabled) {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      }
+    }
+  }
+
+  .keyboard-hints {
+    padding: 12px 20px 8px 20px;
+    background: white;
+    border-top: 1px solid #F0F0F0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #999999;
+      justify-content: center;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #CCCCCC;
+      }
+
+      span {
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .match-container {
+    .keyboard-hints {
+      display: none;
+    }
+
+    .cards-container {
+      .dog-card {
+        max-width: calc(100vw - 40px);
+        height: calc(100vh - 240px);
+        max-height: 600px;
+
+        .card-image {
+          height: 60%;
+        }
+
+        .card-info {
+          height: 40%;
+        }
+      }
+    }
+
+    .actions {
+      padding: 12px;
+      gap: 8px;
+
+      .action-btn {
+        &.pass-btn,
+        &.like-btn {
+          width: 56px;
+          height: 56px;
+
+          mat-icon {
+            font-size: 28px;
+            width: 28px;
+            height: 28px;
+          }
+        }
+
+        &.favorite-btn {
+          width: 64px;
+          height: 64px;
+
+          mat-icon {
+            font-size: 32px;
+            width: 32px;
+            height: 32px;
+          }
+        }
+      }
+    }
+  }
+}
+
+```
+
+## File: src\app\pages\match-swipe\match-swipe.ts
+```ts
+import { Component, OnInit, signal, computed, HostListener, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, NavigationEnd } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatBottomSheetModule, MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Dog, DogFilters, DEFAULT_FILTERS } from '../../models/dog.model';
+import { MockDogService } from '../../services/mock-dog';
+import { SwipeEngineService, SwipeState } from '../../services/swipe-engine';
+import { StorageService } from '../../services/storage';
+import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
+
+@Component({
+  selector: 'app-match-swipe',
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatBottomSheetModule,
+    MatBadgeModule,
+    MatDialogModule,
+    MatTooltipModule,
+    MatSnackBarModule
+  ],
+  templateUrl: './match-swipe.html',
+  styleUrl: './match-swipe.scss',
+})
+export class MatchSwipe implements OnInit, OnDestroy {
+  dogs = signal<Dog[]>([]);
+  currentDog = computed(() => this.dogs()[0] || null);
+  filters = signal<DogFilters>(DEFAULT_FILTERS);
+  matchCount = signal(0);
+  isLoading = signal(false);
+
+  private routerSubscription?: Subscription;
+
+  // Swipe state
+  swipeState = signal<SwipeState>({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    currentY: 0,
+    deltaX: 0,
+    deltaY: 0,
+    rotation: 0,
+    opacity: 1,
+    direction: 'none'
+  });
+
+  constructor(
+    private dogService: MockDogService,
+    private swipeEngine: SwipeEngineService,
+    private storage: StorageService,
+    private router: Router,
+    private bottomSheet: MatBottomSheet,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
+
+  async ngOnInit() {
+    await this.loadDogs();
+    await this.loadMatchCount();
+    this.loadFilters();
+
+    // Subscribe to router events à¹€à¸žà¸·à¹ˆà¸­ reload à¹€à¸¡à¸·à¹ˆà¸­à¸à¸¥à¸±à¸šà¸¡à¸²à¸ˆà¸²à¸à¸«à¸™à¹‰à¸² preferences
+    this.routerSubscription = this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        if (event.url === '/match') {
+          this.loadFilters();
+          this.loadDogs();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.routerSubscription?.unsubscribe();
+  }
+
+  async loadDogs() {
+    this.isLoading.set(true);
+    try {
+      console.log('Loading dogs with filters:', this.filters());
+      const dogs = await this.dogService.getDogs(this.filters());
+      console.log('Dogs loaded:', dogs.length, 'dogs');
+      this.dogs.set(dogs);
+    } catch (error) {
+      console.error('Error loading dogs:', error);
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async loadMatchCount() {
+    const matches = await this.dogService.getMatches();
+    this.matchCount.set(matches.length);
+  }
+
+  loadFilters() {
+    const saved = this.storage.getItem<DogFilters>('dog_filters');
+    console.log('Loading filters from storage:', saved);
+    if (saved) {
+      this.filters.set(saved);
+      console.log('Filters set to:', this.filters());
+    }
+  }
+
+  // Touch events for mobile
+  onTouchStart(event: TouchEvent) {
+    const touch = event.touches[0];
+    this.startDrag(touch.clientX, touch.clientY);
+  }
+
+  onTouchMove(event: TouchEvent) {
+    if (this.swipeState().isDragging) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      this.updateDrag(touch.clientX, touch.clientY);
+    }
+  }
+
+  onTouchEnd() {
+    this.endDrag();
+  }
+
+  // Mouse events for desktop
+  onMouseDown(event: MouseEvent) {
+    this.startDrag(event.clientX, event.clientY);
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent) {
+    if (this.swipeState().isDragging) {
+      this.updateDrag(event.clientX, event.clientY);
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp() {
+    if (this.swipeState().isDragging) {
+      this.endDrag();
+    }
+  }
+
+  // Keyboard events
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent) {
+    if (!this.currentDog()) return;
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.pass();
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        this.like();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.favorite();
+        break;
+      case 'z':
+      case 'Z':
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          this.undo();
+        }
+        break;
+    }
+  }
+
+  // Mouse wheel events
+  @HostListener('wheel', ['$event'])
+  onWheel(event: WheelEvent) {
+    if (!this.currentDog()) return;
+
+    // Prevent default scrolling
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+      event.preventDefault();
+
+      // Horizontal scroll
+      if (event.deltaX > 20) {
+        this.like();
+      } else if (event.deltaX < -20) {
+        this.pass();
+      }
+    } else if (event.deltaY !== 0) {
+      // Vertical scroll
+      if (event.deltaY < -20) {
+        event.preventDefault();
+        this.favorite();
+      }
+    }
+  }
+
+  private startDrag(x: number, y: number) {
+    const state = this.swipeEngine.calculateSwipeState(x, y, x, y, true);
+    this.swipeState.set(state);
+  }
+
+  private updateDrag(x: number, y: number) {
+    const current = this.swipeState();
+    const state = this.swipeEngine.calculateSwipeState(
+      current.startX,
+      current.startY,
+      x,
+      y,
+      true
+    );
+    this.swipeState.set(state);
+  }
+
+  private async endDrag() {
+    const current = this.swipeState();
+    const result = this.swipeEngine.shouldTriggerSwipe(current);
+
+    if (result.triggered && result.action) {
+      await this.handleSwipe(result.action);
+    } else {
+      // Snap back
+      this.swipeState.set({
+        ...current,
+        isDragging: false,
+        deltaX: 0,
+        deltaY: 0,
+        rotation: 0,
+        opacity: 1,
+        direction: 'none'
+      });
+    }
+  }
+
+  async handleSwipe(action: 'pass' | 'like' | 'favorite') {
+    const dog = this.currentDog();
+    if (!dog) return;
+
+    // Animate out
+    const current = this.swipeState();
+    const exitX = action === 'pass' ? -1000 : action === 'like' ? 1000 : 0;
+    const exitY = action === 'favorite' ? -1000 : 0;
+
+    this.swipeState.set({
+      ...current,
+      currentX: exitX,
+      currentY: exitY,
+      opacity: 0
+    });
+
+    // Submit swipe
+    setTimeout(async () => {
+      const result = await this.dogService.submitSwipe(dog.id, action);
+
+      if (result.isMatch) {
+        this.matchCount.set(this.matchCount() + 1);
+        this.showMatchDialog(result.match!);
+      }
+
+      // Remove card
+      this.dogs.set(this.dogs().slice(1));
+
+      // Reset state
+      this.swipeState.set({
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        deltaX: 0,
+        deltaY: 0,
+        rotation: 0,
+        opacity: 1,
+        direction: 'none'
+      });
+
+      // Load more dogs if running low
+      if (this.dogs().length < 3) {
+        await this.loadDogs();
+      }
+    }, 300);
+  }
+
+  // Button actions
+  pass() {
+    this.handleSwipe('pass');
+  }
+
+  like() {
+    this.handleSwipe('like');
+  }
+
+  favorite() {
+    this.handleSwipe('favorite');
+  }
+
+  async undo() {
+    const dog = await this.dogService.undoLastSwipe();
+    if (dog) {
+      this.dogs.set([dog, ...this.dogs()]);
+    }
+  }
+
+  showMatchDialog(match: any) {
+    this.snackBar.open(
+      `ðŸŽ‰ It's a match! You matched with ${match.dog.name}!`,
+      'View Profile',
+      {
+        duration: 5000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom',
+        panelClass: ['match-snackbar']
+      }
+    );
+  }
+
+  openFilters() {
+    this.router.navigate(['/match-preferences']);
+  }
+
+  async openNotifications() {
+    const matches = await this.dogService.getMatches();
+    const { NotificationsPanel } = await import('../../components/notifications-panel/notifications-panel');
+
+    this.bottomSheet.open(NotificationsPanel, {
+      data: { matches },
+      panelClass: 'notifications-bottom-sheet'
+    });
+  }
+
+  openProfile() {
+    this.router.navigate(['/profile']);
+  }
+
+  getCardTransform(): string {
+    return this.swipeEngine.getCardTransform(this.swipeState());
+  }
+
+  getOverlayLabel() {
+    return this.swipeEngine.getOverlayLabel(this.swipeState().direction);
+  }
+}
+
+```
+
+## File: src\app\pages\profile-home\profile-home.html
+```html
+<div class="profile-container">
+  <!-- Header -->
+  <div class="header">
+    <button mat-icon-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Profile</h1>
+    <button mat-icon-button (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </div>
+
+  <div class="content">
+    <!-- User Info -->
+    <div class="user-section">
+      <div class="avatar">
+        @if (dogProfile()?.imageUrl) {
+          <img [src]="dogProfile().imageUrl" [alt]="dogProfile().name">
+        } @else {
+          <mat-icon>person</mat-icon>
+        }
+      </div>
+      <h2>{{ authService.user()?.name || 'User' }}</h2>
+      <p class="email">{{ authService.user()?.email }}</p>
+    </div>
+
+    <!-- Dog Profile Card -->
+    @if (dogProfile()) {
+      <mat-card class="dog-profile-card">
+        <mat-card-header>
+          <mat-card-title>
+            <div class="card-title-row">
+              <span>My Dog</span>
+              <button mat-icon-button (click)="editProfile()">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (isEditingImage()) {
+            <!-- Image Upload Mode -->
+            <app-image-upload
+              [initialImage]="dogProfile().imageUrl"
+              buttonText="Change Dog Photo"
+              aspectRatio="square"
+              (imageSelected)="onImageSelected($event)"
+              (imageRemoved)="onImageRemoved()"
+            ></app-image-upload>
+            <button mat-stroked-button (click)="toggleImageEdit()" class="cancel-btn">
+              Cancel
+            </button>
+          } @else {
+            <!-- Normal Display Mode -->
+            <div class="dog-info">
+              <div class="dog-image" (click)="toggleImageEdit()">
+                <img [src]="dogProfile().imageUrl" [alt]="dogProfile().name">
+                <div class="image-overlay">
+                  <mat-icon>edit</mat-icon>
+                  <span>Change Photo</span>
+                </div>
+              </div>
+              <div class="dog-details">
+                <h3>{{ dogProfile().name }}, {{ dogProfile().age }}</h3>
+                <p>{{ dogProfile().breed }}</p>
+                <div class="tags">
+                  <span class="tag">{{ dogProfile().size }}</span>
+                  <span class="tag">{{ dogProfile().energy }}</span>
+                  <span class="tag">{{ dogProfile().gender }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="bio">{{ dogProfile().bio }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card class="no-dog-card">
+        <mat-card-content>
+          <mat-icon>pets</mat-icon>
+          <h3>No Dog Profile Yet</h3>
+          <p>Create your dog's profile to start matching!</p>
+          <button mat-raised-button color="primary" (click)="editProfile()">
+            Add Dog Profile
+          </button>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Stats -->
+    <div class="stats-section">
+      <h3>Activity</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <mat-icon>swipe</mat-icon>
+          <h4>{{ stats().totalSwipes }}</h4>
+          <p>Swipes</p>
+        </div>
+        <div class="stat-card">
+          <mat-icon>favorite</mat-icon>
+          <h4>{{ stats().matches }}</h4>
+          <p>Matches</p>
+        </div>
+        <div class="stat-card">
+          <mat-icon>star</mat-icon>
+          <h4>{{ stats().favorites }}</h4>
+          <p>Favorites</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matches List -->
+    @if (matches().length > 0) {
+      <div class="matches-section">
+        <h3>Recent Matches</h3>
+        <mat-list>
+          @for (match of matches(); track match.id) {
+            <mat-list-item>
+              <img matListItemAvatar [src]="match.dog.imageUrl" [alt]="match.dog.name">
+              <div matListItemTitle>{{ match.dog.name }}</div>
+              <div matListItemLine>{{ match.dog.breed }}</div>
+              <button mat-icon-button matListItemMeta>
+                <mat-icon>chat</mat-icon>
+              </button>
+            </mat-list-item>
+            <mat-divider></mat-divider>
+          }
+        </mat-list>
+        <button mat-stroked-button class="view-all-btn" (click)="viewMatches()">
+          View All Matches
+        </button>
+      </div>
+    }
+
+    <!-- Settings -->
+    <div class="settings-section">
+      <h3>Settings</h3>
+      <mat-list>
+        <mat-list-item>
+          <mat-icon matListItemIcon>notifications</mat-icon>
+          <div matListItemTitle>Notifications</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item (click)="goToMatchPreferences()">
+          <mat-icon matListItemIcon>tune</mat-icon>
+          <div matListItemTitle>Match Preferences</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item>
+          <mat-icon matListItemIcon>privacy_tip</mat-icon>
+          <div matListItemTitle>Privacy & Safety</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item (click)="clearMatches()">
+          <mat-icon matListItemIcon>clear_all</mat-icon>
+          <div matListItemTitle>Clear Matches</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item (click)="clearAllData()">
+          <mat-icon matListItemIcon>delete_sweep</mat-icon>
+          <div matListItemTitle>Clear All Data</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+        <mat-divider></mat-divider>
+
+        <mat-list-item>
+          <mat-icon matListItemIcon>help</mat-icon>
+          <div matListItemTitle>Help & Support</div>
+          <button mat-icon-button matListItemMeta>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </mat-list-item>
+      </mat-list>
+    </div>
+
+    <!-- Sign Out Button -->
+    <button mat-stroked-button class="sign-out-btn" (click)="signOut()">
+      <mat-icon>logout</mat-icon>
+      Sign Out
+    </button>
+  </div>
+</div>
+
+```
+
+## File: src\app\pages\profile-home\profile-home.scss
+```scss
+.profile-container {
+  min-height: 100vh;
+  background: #F5F5F5;
+  display: flex;
+  flex-direction: column;
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2C2C2C;
+      margin: 0;
+      flex: 1;
+      text-align: center;
+    }
+
+    button {
+      color: #666666;
+    }
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 0 24px 0;
+
+    .user-section {
+      background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%);
+      padding: 32px 16px;
+      text-align: center;
+      color: white;
+      position: relative;
+      z-index: 1;
+
+      .avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        overflow: hidden;
+        border: 3px solid white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        mat-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+        }
+      }
+
+      h2 {
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+      }
+
+      .email {
+        font-size: 14px;
+        opacity: 0.9;
+        margin: 0;
+      }
+    }
+
+    .dog-profile-card {
+      margin: -40px 16px 16px 16px;
+      border-radius: 16px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+      position: relative;
+      z-index: 2;
+
+      mat-card-header {
+        mat-card-title {
+          .card-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+
+            button {
+              color: #F6A51F;
+            }
+          }
+        }
+      }
+
+      mat-card-content {
+        padding-top: 16px;
+
+        .dog-info {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 16px;
+
+          .dog-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+
+            &:hover {
+              transform: scale(1.05);
+
+              .image-overlay {
+                opacity: 1;
+              }
+            }
+
+            img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            }
+
+            .image-overlay {
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(0, 0, 0, 0.6);
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 4px;
+              opacity: 0;
+              transition: opacity 0.3s ease;
+              border-radius: 12px;
+
+              mat-icon {
+                font-size: 24px;
+                width: 24px;
+                height: 24px;
+                color: white;
+              }
+
+              span {
+                font-size: 10px;
+                color: white;
+                font-weight: 500;
+              }
+            }
+          }
+
+          .dog-details {
+            flex: 1;
+
+            h3 {
+              font-size: 20px;
+              font-weight: 600;
+              color: #2C2C2C;
+              margin: 0 0 4px 0;
+            }
+
+            p {
+              font-size: 14px;
+              color: #666666;
+              margin: 0 0 8px 0;
+            }
+
+            .tags {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 6px;
+
+              .tag {
+                padding: 4px 10px;
+                background: #FFF5E6;
+                color: #F6A51F;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+                text-transform: capitalize;
+              }
+            }
+          }
+        }
+
+        .bio {
+          font-size: 14px;
+          line-height: 1.6;
+          color: #666666;
+          margin: 0;
+        }
+
+        .cancel-btn {
+          width: 100%;
+          margin-top: 12px;
+          border-radius: 24px !important;
+        }
+      }
+    }
+
+    .no-dog-card {
+      margin: -40px 16px 16px 16px;
+      border-radius: 16px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+
+      mat-card-content {
+        text-align: center;
+        padding: 40px 20px;
+
+        mat-icon {
+          font-size: 64px;
+          width: 64px;
+          height: 64px;
+          color: #CCCCCC;
+          margin-bottom: 16px;
+        }
+
+        h3 {
+          font-size: 20px;
+          font-weight: 600;
+          color: #2C2C2C;
+          margin: 0 0 8px 0;
+        }
+
+        p {
+          font-size: 14px;
+          color: #666666;
+          margin: 0 0 24px 0;
+        }
+
+        button {
+          border-radius: 24px !important;
+        }
+      }
+    }
+
+    .stats-section {
+      padding: 24px 16px;
+
+      h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2C2C2C;
+        margin: 0 0 16px 0;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+
+        .stat-card {
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
+          text-align: center;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+          mat-icon {
+            font-size: 32px;
+            width: 32px;
+            height: 32px;
+            color: #F6A51F;
+            margin-bottom: 8px;
+          }
+
+          h4 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2C2C2C;
+            margin: 0 0 4px 0;
+          }
+
+          p {
+            font-size: 12px;
+            color: #666666;
+            margin: 0;
+          }
+        }
+      }
+    }
+
+    .matches-section {
+      padding: 0 16px 24px 16px;
+
+      h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2C2C2C;
+        margin: 0 0 16px 0;
+      }
+
+      mat-list {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        padding: 0 !important;
+
+        mat-list-item {
+          height: 72px;
+
+          img {
+            border-radius: 8px;
+          }
+
+          button {
+            color: #F6A51F;
+          }
+        }
+      }
+
+      .view-all-btn {
+        width: 100%;
+        height: 48px;
+        margin-top: 12px;
+        border-radius: 24px !important;
+        border-color: #F6A51F !important;
+        color: #F6A51F !important;
+      }
+    }
+
+    .settings-section {
+      padding: 0 16px 24px 16px;
+
+      h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2C2C2C;
+        margin: 0 0 16px 0;
+      }
+
+      mat-list {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        padding: 0 !important;
+
+        mat-list-item {
+          height: 60px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: #F9F9F9;
+          }
+
+          mat-icon {
+            color: #666666;
+
+            &[matListItemIcon] {
+              color: #F6A51F;
+            }
+          }
+        }
+      }
+    }
+
+    .sign-out-btn {
+      width: calc(100% - 32px);
+      height: 48px;
+      margin: 0 16px;
+      border-radius: 24px !important;
+      border-color: #F44336 !important;
+      color: #F44336 !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      &:hover {
+        background: #FFEBEE !important;
+      }
+    }
+  }
+}
+
+```
+
+## File: src\app\pages\profile-home\profile-home.ts
+```ts
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatListModule } from '@angular/material/list';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { AuthService } from '../../services/auth';
+import { MockDogService } from '../../services/mock-dog';
+import { StorageService } from '../../services/storage';
+import { ImageUploadComponent } from '../../components/image-upload/image-upload';
+import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-dialog';
+
+@Component({
+  selector: 'app-profile-home',
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatDividerModule,
+    MatListModule,
+    MatDialogModule,
+    ImageUploadComponent
+  ],
+  templateUrl: './profile-home.html',
+  styleUrl: './profile-home.scss',
+})
+export class ProfileHome implements OnInit {
+  dogProfile = signal<any>(null);
+  matches = signal<any[]>([]);
+  stats = signal({
+    totalSwipes: 0,
+    matches: 0,
+    favorites: 0
+  });
+  isEditingImage = signal(false);
+
+  constructor(
+    public authService: AuthService,
+    private dogService: MockDogService,
+    private storage: StorageService,
+    private router: Router,
+    private dialog: MatDialog
+  ) {}
+
+  async ngOnInit() {
+    this.loadDogProfile();
+    await this.loadMatches();
+  }
+
+  loadDogProfile() {
+    const profile = this.storage.getItem('user_dog_profile');
+    if (profile) {
+      this.dogProfile.set(profile);
+    }
+  }
+
+  async loadMatches() {
+    const matches = await this.dogService.getMatches();
+    this.matches.set(matches);
+
+    // à¸”à¸¶à¸‡à¸ªà¸–à¸´à¸•à¸´à¸ˆà¸²à¸ service
+    const stats = this.dogService.getStats();
+    this.stats.set(stats);
+  }
+
+  editProfile() {
+    this.router.navigate(['/register-dog']);
+  }
+
+  toggleImageEdit() {
+    this.isEditingImage.set(!this.isEditingImage());
+  }
+
+  onImageSelected(dataUrl: string) {
+    const profile = this.dogProfile();
+    if (profile) {
+      profile.imageUrl = dataUrl;
+      profile.updatedAt = new Date();
+      this.storage.setItem('user_dog_profile', profile);
+      this.dogProfile.set(profile);
+      this.isEditingImage.set(false);
+    }
+  }
+
+  onImageRemoved() {
+    const profile = this.dogProfile();
+    if (profile) {
+      profile.imageUrl = 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800';
+      profile.updatedAt = new Date();
+      this.storage.setItem('user_dog_profile', profile);
+      this.dogProfile.set(profile);
+    }
+  }
+
+  viewMatches() {
+    alert('Matches feature - coming soon!');
+  }
+
+  async clearMatches() {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      panelClass: 'confirm-dialog-container',
+      data: {
+        title: 'Clear All Matches?',
+        message: 'Are you sure you want to clear all matches? This action cannot be undone.',
+        confirmText: 'Clear Matches',
+        cancelText: 'Cancel',
+        icon: 'delete',
+        iconColor: '#F44336'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async (confirmed) => {
+      if (confirmed) {
+        await this.dogService.clearMatches();
+        await this.loadMatches();
+      }
+    });
+  }
+
+  async clearAllData() {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      panelClass: 'confirm-dialog-container',
+      data: {
+        title: 'Clear All Data?',
+        message: 'Are you sure you want to clear all matches and swipe history? This will reset everything and cannot be undone.',
+        confirmText: 'Clear All Data',
+        cancelText: 'Cancel',
+        icon: 'warning',
+        iconColor: '#FF8A00'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(async (confirmed) => {
+      if (confirmed) {
+        await this.dogService.clearAll();
+        await this.loadMatches();
+      }
+    });
+  }
+
+  signOut() {
+    this.authService.signOut();
+  }
+
+  goToMatchPreferences() {
+    this.router.navigate(['/match-preferences']);
+  }
+
+  goBack() {
+    this.router.navigate(['/match']);
+  }
+}
+
+```
+
+## File: src\app\pages\register-dog\register-dog.html
+```html
+<div class="register-container">
+  <!-- Header -->
+  <div class="header">
+    <button mat-icon-button (click)="previousStep()" [disabled]="currentStep() === 1">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Register Your Dog</h1>
+    <button mat-icon-button routerLink="/match">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-section">
+    <mat-progress-bar [value]="progressPercentage" mode="determinate"></mat-progress-bar>
+    <p class="progress-text">Step {{ currentStep() }} of {{ totalSteps }}</p>
+  </div>
+
+  <!-- Form Content -->
+  <div class="content">
+    <form [formGroup]="dogForm">
+      <!-- Step 1: Basic Information -->
+      @if (currentStep() === 1) {
+        <div class="step step-1" [@fadeIn]>
+          <h2>Basic Information</h2>
+          <p class="step-description">Tell us about your furry friend</p>
+
+          <!-- Image Upload -->
+          <app-image-upload
+            [initialImage]="dogImageUrl() || undefined"
+            buttonText="Upload Dog Photo"
+            aspectRatio="square"
+            (imageSelected)="onImageSelected($event)"
+            (imageRemoved)="onImageRemoved()"
+          ></app-image-upload>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Dog's Name</mat-label>
+            <input matInput formControlName="name" placeholder="e.g., Max">
+            @if (dogForm.get('name')?.hasError('required') && dogForm.get('name')?.touched) {
+              <mat-error>Name is required</mat-error>
+            }
+            @if (dogForm.get('name')?.hasError('minlength')) {
+              <mat-error>Name must be at least 2 characters</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Breed</mat-label>
+            <input
+              matInput
+              formControlName="breed"
+              [matAutocomplete]="auto"
+              (input)="onBreedInput($event)"
+              placeholder="Search for a breed">
+            <mat-autocomplete #auto="matAutocomplete">
+              @for (breed of filteredBreeds(); track breed) {
+                <mat-option [value]="breed">{{ breed }}</mat-option>
+              }
+            </mat-autocomplete>
+            @if (dogForm.get('breed')?.hasError('required') && dogForm.get('breed')?.touched) {
+              <mat-error>Breed is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Age (years)</mat-label>
+            <input matInput type="number" formControlName="age" placeholder="3">
+            @if (dogForm.get('age')?.hasError('required') && dogForm.get('age')?.touched) {
+              <mat-error>Age is required</mat-error>
+            }
+            @if (dogForm.get('age')?.hasError('min') || dogForm.get('age')?.hasError('max')) {
+              <mat-error>Age must be between 0 and 25</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="gender-selector">
+            <label>Gender</label>
+            <mat-radio-group formControlName="gender" class="gender-group">
+              <mat-radio-button value="male">
+                <mat-icon>male</mat-icon>
+                Male
+              </mat-radio-button>
+              <mat-radio-button value="female">
+                <mat-icon>female</mat-icon>
+                Female
+              </mat-radio-button>
+            </mat-radio-group>
+          </div>
+        </div>
+      }
+
+      <!-- Step 2: Physical & Energy -->
+      @if (currentStep() === 2) {
+        <div class="step step-2" [@fadeIn]>
+          <h2>Physical Traits</h2>
+          <p class="step-description">Help us find the perfect match</p>
+
+          <div class="size-selector">
+            <label>Size</label>
+            <div class="size-grid">
+              @for (size of sizes; track size.value) {
+                <div
+                  class="size-card"
+                  [class.selected]="dogForm.get('size')?.value === size.value"
+                  (click)="dogForm.patchValue({ size: size.value })"
+                >
+                  <h3>{{ size.label }}</h3>
+                  <p>{{ size.desc }}</p>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="energy-selector">
+            <label>Energy Level</label>
+            <div class="energy-grid">
+              @for (level of energyLevels; track level.value) {
+                <div
+                  class="energy-card"
+                  [class.selected]="dogForm.get('energy')?.value === level.value"
+                  (click)="dogForm.patchValue({ energy: level.value })"
+                >
+                  <span class="energy-icon">{{ level.icon }}</span>
+                  <span class="energy-label">{{ level.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Step 3: Activities & Bio -->
+      @if (currentStep() === 3) {
+        <div class="step step-3" [@fadeIn]>
+          <h2>Activities & Interests</h2>
+          <p class="step-description">What does your dog love to do?</p>
+
+          <div class="activities-selector">
+            <label>Favorite Activities (select at least one)</label>
+            <div class="activities-grid">
+              @for (activity of activities; track activity) {
+                <div
+                  class="activity-chip"
+                  [class.selected]="isActivitySelected(activity)"
+                  (click)="toggleActivity(activity)"
+                >
+                  <mat-icon>{{ isActivitySelected(activity) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  {{ activity }}
+                </div>
+              }
+            </div>
+            @if (dogForm.get('activities')?.hasError('required') && dogForm.get('activities')?.touched) {
+              <span class="error-text">Please select at least one activity</span>
+            }
+          </div>
+
+          <mat-form-field appearance="outline" class="bio-field">
+            <mat-label>Bio (Optional)</mat-label>
+            <textarea
+              matInput
+              formControlName="bio"
+              rows="4"
+              placeholder="Tell us about your dog's personality, favorite toys, or anything that makes them special!"
+            ></textarea>
+            <mat-hint align="end">{{ dogForm.get('bio')?.value?.length || 0 }} / 300</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Province</mat-label>
+            <input
+              matInput
+              formControlName="city"
+              [matAutocomplete]="provinceAuto"
+              (input)="onProvinceInput($event)"
+              placeholder="Search for a province">
+            <mat-autocomplete #provinceAuto="matAutocomplete">
+              @for (province of filteredProvinces(); track province) {
+                <mat-option [value]="province">{{ province }}</mat-option>
+              }
+            </mat-autocomplete>
+            @if (dogForm.get('city')?.hasError('required') && dogForm.get('city')?.touched) {
+              <mat-error>Province is required</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      }
+    </form>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="actions">
+    @if (currentStep() < totalSteps) {
+      <button
+        mat-raised-button
+        color="primary"
+        class="next-btn"
+        [disabled]="!canProceed"
+        (click)="nextStep()"
+      >
+        Continue
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    } @else {
+      <button
+        mat-raised-button
+        color="primary"
+        class="submit-btn"
+        [disabled]="!dogForm.valid"
+        (click)="submitForm()"
+      >
+        Complete Registration
+        <mat-icon>check</mat-icon>
+      </button>
+    }
+  </div>
+</div>
+
+```
+
+## File: src\app\pages\register-dog\register-dog.scss
+```scss
+.register-container {
+  min-height: 100vh;
+  background: #FAFAFA;
+  display: flex;
+  flex-direction: column;
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2C2C2C;
+      margin: 0;
+      flex: 1;
+      text-align: center;
+    }
+
+    button {
+      color: #666666;
+    }
+  }
+
+  .progress-section {
+    padding: 16px;
+    background: white;
+
+    mat-progress-bar {
+      height: 8px;
+      border-radius: 4px;
+
+      ::ng-deep {
+        .mdc-linear-progress__bar-inner {
+          border-color: #F6A51F !important;
+        }
+      }
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #666666;
+      text-align: center;
+      margin: 8px 0 0 0;
+    }
+  }
+
+  .content {
+    flex: 1;
+    padding: 24px 16px;
+    overflow-y: auto;
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+
+    .step {
+      animation: fadeIn 0.4s ease;
+
+      h2 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin: 0 0 8px 0;
+      }
+
+      .step-description {
+        font-size: 16px;
+        color: #666666;
+        margin: 0 0 32px 0;
+      }
+
+      mat-form-field {
+        width: 100%;
+        margin-bottom: 16px;
+      }
+
+      .gender-selector,
+      .size-selector,
+      .energy-selector,
+      .activities-selector {
+        margin-bottom: 32px;
+
+        label {
+          display: block;
+          font-size: 16px;
+          font-weight: 600;
+          color: #2C2C2C;
+          margin-bottom: 12px;
+        }
+      }
+
+      .gender-group {
+        display: flex;
+        gap: 16px;
+
+        mat-radio-button {
+          flex: 1;
+          padding: 16px;
+          border: 2px solid #E0E0E0;
+          border-radius: 12px;
+          transition: all 0.3s ease;
+
+          ::ng-deep {
+            .mdc-radio {
+              display: none;
+            }
+
+            .mdc-label {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-weight: 500;
+              color: #666666;
+            }
+          }
+
+          &.mat-mdc-radio-checked {
+            border-color: #F6A51F;
+            background: #FFF5E6;
+
+            ::ng-deep .mdc-label {
+              color: #F6A51F;
+            }
+          }
+
+          mat-icon {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+          }
+        }
+      }
+
+      .size-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+
+        .size-card {
+          padding: 20px;
+          border: 2px solid #E0E0E0;
+          border-radius: 12px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+
+          h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2C2C2C;
+            margin: 0 0 4px 0;
+          }
+
+          p {
+            font-size: 14px;
+            color: #666666;
+            margin: 0;
+          }
+
+          &.selected {
+            border-color: #F6A51F;
+            background: #FFF5E6;
+
+            h3 {
+              color: #F6A51F;
+            }
+          }
+
+          &:hover {
+            border-color: #F6A51F;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(246, 165, 31, 0.2);
+          }
+        }
+      }
+
+      .energy-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+
+        .energy-card {
+          padding: 16px;
+          border: 2px solid #E0E0E0;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+
+          .energy-icon {
+            font-size: 32px;
+          }
+
+          .energy-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #666666;
+          }
+
+          &.selected {
+            border-color: #F6A51F;
+            background: #FFF5E6;
+
+            .energy-label {
+              color: #F6A51F;
+            }
+          }
+
+          &:hover {
+            border-color: #F6A51F;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(246, 165, 31, 0.2);
+          }
+        }
+      }
+
+      .activities-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 8px;
+
+        .activity-chip {
+          padding: 12px 16px;
+          border: 2px solid #E0E0E0;
+          border-radius: 24px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+          font-weight: 500;
+          color: #666666;
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            color: #CCCCCC;
+          }
+
+          &.selected {
+            border-color: #F6A51F;
+            background: #FFF5E6;
+            color: #F6A51F;
+
+            mat-icon {
+              color: #F6A51F;
+            }
+          }
+
+          &:hover {
+            border-color: #F6A51F;
+          }
+        }
+      }
+
+      .error-text {
+        display: block;
+        color: #F44336;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+
+      .bio-field {
+        textarea {
+          resize: vertical;
+          min-height: 100px;
+        }
+      }
+    }
+  }
+
+  .actions {
+    padding: 16px;
+    background: white;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.08);
+
+    button {
+      width: 100%;
+      height: 56px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 28px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      &.next-btn,
+      &.submit-btn {
+        background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%) !important;
+        color: white !important;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 16px rgba(246, 165, 31, 0.3);
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+```
+
+## File: src\app\pages\register-dog\register-dog.ts
+```ts
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { trigger, transition, style, animate } from '@angular/animations';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSliderModule } from '@angular/material/slider';
+import { ACTIVITY_OPTIONS, BREED_OPTIONS } from '../../models/dog.model';
+import { StorageService } from '../../services/storage';
+import { ImageUploadComponent } from '../../components/image-upload/image-upload';
+
+@Component({
+  selector: 'app-register-dog',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSelectModule,
+    MatAutocompleteModule,
+    MatRadioModule,
+    MatCheckboxModule,
+    MatChipsModule,
+    MatProgressBarModule,
+    MatSliderModule,
+    ImageUploadComponent
+  ],
+  templateUrl: './register-dog.html',
+  styleUrl: './register-dog.scss',
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
+})
+export class RegisterDog implements OnInit {
+  dogForm!: FormGroup;
+  currentStep = signal(1);
+  totalSteps = 3;
+  dogImageUrl = signal<string | null>(null);
+
+  breeds = BREED_OPTIONS;
+  filteredBreeds = signal<string[]>(BREED_OPTIONS);
+  activities = ACTIVITY_OPTIONS;
+
+  // Thai Provinces in English
+  provinces = [
+    'Amnat Charoen', 'Ang Thong', 'Bangkok', 'Bueng Kan', 'Buri Ram',
+    'Chachoengsao', 'Chai Nat', 'Chaiyaphum', 'Chanthaburi', 'Chiang Mai',
+    'Chiang Rai', 'Chon Buri', 'Chumphon', 'Kalasin', 'Kamphaeng Phet',
+    'Kanchanaburi', 'Khon Kaen', 'Krabi', 'Lampang', 'Lamphun',
+    'Loei', 'Lop Buri', 'Mae Hong Son', 'Maha Sarakham', 'Mukdahan',
+    'Nakhon Nayok', 'Nakhon Pathom', 'Nakhon Phanom', 'Nakhon Ratchasima', 'Nakhon Sawan',
+    'Nakhon Si Thammarat', 'Nan', 'Narathiwat', 'Nong Bua Lam Phu', 'Nong Khai',
+    'Nonthaburi', 'Pathum Thani', 'Pattani', 'Phang Nga', 'Phatthalung',
+    'Phayao', 'Phetchabun', 'Phetchaburi', 'Phichit', 'Phitsanulok',
+    'Phra Nakhon Si Ayutthaya', 'Phrae', 'Phuket', 'Prachin Buri', 'Prachuap Khiri Khan',
+    'Ranong', 'Ratchaburi', 'Rayong', 'Roi Et', 'Sa Kaeo',
+    'Sakon Nakhon', 'Samut Prakan', 'Samut Sakhon', 'Samut Songkhram', 'Saraburi',
+    'Satun', 'Sing Buri', 'Si Sa Ket', 'Songkhla', 'Sukhothai',
+    'Suphan Buri', 'Surat Thani', 'Surin', 'Tak', 'Trang',
+    'Trat', 'Ubon Ratchathani', 'Udon Thani', 'Uthai Thani', 'Uttaradit',
+    'Yala', 'Yasothon'
+  ];
+  filteredProvinces = signal<string[]>(this.provinces);
+
+  energyLevels = [
+    { value: 'low', label: 'Low', icon: 'ðŸŒ' },
+    { value: 'moderate', label: 'Moderate', icon: 'ðŸ•' },
+    { value: 'high', label: 'High', icon: 'âš¡' },
+    { value: 'very-high', label: 'Very High', icon: 'ðŸš€' }
+  ];
+
+  sizes = [
+    { value: 'toy', label: 'Toy', desc: 'up to 4 kg' },
+    { value: 'small', label: 'Small', desc: '5-10 kg' },
+    { value: 'medium', label: 'Medium', desc: '11-25 kg' },
+    { value: 'large', label: 'Large', desc: '26-44 kg' },
+    { value: 'giant', label: 'Giant', desc: 'over 45 kg' }
+  ];
+
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private storage: StorageService
+  ) {}
+
+  ngOnInit(): void {
+    this.dogForm = this.fb.group({
+      // Step 1: Basic Info
+      name: ['', [Validators.required, Validators.minLength(2)]],
+      breed: ['', Validators.required],
+      age: ['', [Validators.required, Validators.min(0), Validators.max(25)]],
+      gender: ['male', Validators.required],
+
+      // Step 2: Physical & Energy
+      size: ['', Validators.required],
+      energy: ['', Validators.required],
+
+      // Step 3: Activities & Bio
+      activities: [[], [Validators.required, Validators.minLength(1)]],
+      bio: ['', [Validators.maxLength(300)]],
+
+      // Location (auto-filled or user input)
+      city: ['Bangkok', Validators.required]
+    });
+  }
+
+  get progressPercentage(): number {
+    return (this.currentStep() / this.totalSteps) * 100;
+  }
+
+  nextStep(): void {
+    if (this.validateCurrentStep()) {
+      if (this.currentStep() < this.totalSteps) {
+        this.currentStep.set(this.currentStep() + 1);
+      }
+    }
+  }
+
+  previousStep(): void {
+    if (this.currentStep() > 1) {
+      this.currentStep.set(this.currentStep() - 1);
+    }
+  }
+
+  validateCurrentStep(): boolean {
+    const step = this.currentStep();
+
+    if (step === 1) {
+      const controls = ['name', 'breed', 'age', 'gender'];
+      return controls.every(control => this.dogForm.get(control)?.valid);
+    } else if (step === 2) {
+      const controls = ['size', 'energy'];
+      return controls.every(control => this.dogForm.get(control)?.valid);
+    } else if (step === 3) {
+      const controls = ['activities', 'bio'];
+      return controls.every(control => this.dogForm.get(control)?.valid);
+    }
+
+    return false;
+  }
+
+  toggleActivity(activity: string): void {
+    const activities = this.dogForm.get('activities')?.value || [];
+    const index = activities.indexOf(activity);
+
+    if (index >= 0) {
+      activities.splice(index, 1);
+    } else {
+      activities.push(activity);
+    }
+
+    this.dogForm.patchValue({ activities });
+  }
+
+  isActivitySelected(activity: string): boolean {
+    const activities = this.dogForm.get('activities')?.value || [];
+    return activities.includes(activity);
+  }
+
+  filterBreeds(value: string): void {
+    const filterValue = value.toLowerCase();
+    this.filteredBreeds.set(
+      this.breeds.filter(breed => breed.toLowerCase().includes(filterValue))
+    );
+  }
+
+  onBreedInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.filterBreeds(input.value);
+  }
+
+  filterProvinces(value: string): void {
+    const filterValue = value.toLowerCase();
+    this.filteredProvinces.set(
+      this.provinces.filter(province => province.toLowerCase().includes(filterValue))
+    );
+  }
+
+  onProvinceInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.filterProvinces(input.value);
+  }
+
+  async submitForm(): Promise<void> {
+    if (this.dogForm.valid) {
+      const dogProfile = {
+        ...this.dogForm.value,
+        id: Date.now().toString(),
+        imageUrl: this.dogImageUrl() || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
+        location: {
+          lat: 40.7128,
+          lng: -74.0060,
+          city: this.dogForm.value.city
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      this.storage.setItem('user_dog_profile', dogProfile);
+      this.router.navigate(['/match']);
+    }
+  }
+
+  onImageSelected(dataUrl: string): void {
+    this.dogImageUrl.set(dataUrl);
+  }
+
+  onImageRemoved(): void {
+    this.dogImageUrl.set(null);
+  }
+
+  get canProceed(): boolean {
+    return this.validateCurrentStep();
+  }
+}
+
+```
+
+## File: src\app\pages\sign-in\sign-in.html
+```html
+<div class="sign-in-container">
+  <div class="content">
+    <!-- Logo -->
+    <div class="logo-section">
+      <div class="logo">
+        <svg width="80" height="80" viewBox="0 0 49 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16.8499 19.276L7.30524 28.8139C5.456 30.6652 4.41728 33.175 4.41728 35.7917C4.41728 38.4084 5.456 40.9181 7.30524 42.7695C9.15661 44.6188 11.6663 45.6575 14.2831 45.6575C16.8998 45.6575 19.4095 44.6188 21.2609 42.7695L23.8226 40.2044L16.8465 33.2282C15.9304 32.312 15.2037 31.2243 14.708 30.0272C14.2124 28.8301 13.9574 27.5471 13.9577 26.2514C13.9581 24.9557 14.2136 23.6728 14.7099 22.476C15.2061 21.2791 15.9333 20.1917 16.8499 19.276Z" fill="#F7B327"/>
+          <path d="M30.8021 19.276C31.7185 20.192 32.4454 21.2795 32.9414 22.4765C33.4374 23.6735 33.6926 24.9564 33.6926 26.2521C33.6926 27.5478 33.4374 28.8308 32.9414 30.0277C32.4454 31.2247 31.7185 32.3123 30.8021 33.2282L23.826 40.2044L26.3912 42.7695C28.242 44.6185 30.7511 45.6572 33.3673 45.6572C35.9835 45.6572 38.4926 44.6185 40.3434 42.7695C41.2599 41.8532 41.9869 40.7654 42.4829 39.5681C42.9789 38.3709 43.2342 37.0876 43.2342 35.7917C43.2342 34.4957 42.9789 33.2125 42.4829 32.0152C41.9869 30.818 41.2599 29.7301 40.3434 28.8139L30.8021 19.276Z" fill="#F7B327"/>
+          <path d="M30.8022 19.276C29.8862 18.3596 28.7986 17.6327 27.6017 17.1367C26.4047 16.6408 25.1217 16.3855 23.8261 16.3855C22.5304 16.3855 21.2474 16.6408 20.0504 17.1367C18.8534 17.6327 17.7659 18.3596 16.8499 19.276C15.9336 20.192 15.2066 21.2795 14.7107 22.4765C14.2147 23.6735 13.9594 24.9564 13.9594 26.2521C13.9594 27.5478 14.2147 28.8307 14.7107 30.0277C15.2066 31.2247 15.9336 32.3122 16.8499 33.2282L23.8261 40.2043L30.8022 33.2282C31.7185 32.3122 32.4455 31.2247 32.9414 30.0277C33.4374 28.8307 33.6927 27.5478 33.6927 26.2521C33.6927 24.9564 33.4374 23.6735 32.9414 22.4765C32.4455 21.2795 31.7185 20.192 30.8022 19.276ZM26.8085 29.221C26.2187 29.8108 25.4672 30.2124 24.6491 30.3751C23.831 30.5378 22.983 30.4542 22.2124 30.135C21.4417 29.8158 20.7831 29.2752 20.3197 28.5816C19.8563 27.8881 19.6089 27.0727 19.6089 26.2385C19.6089 25.4044 19.8563 24.589 20.3197 23.8954C20.7831 23.2019 21.4417 22.6613 22.2124 22.3421C22.983 22.0228 23.831 21.9393 24.6491 22.1019C25.4672 22.2646 26.2187 22.6663 26.8085 23.256C27.2007 23.6474 27.5117 24.1123 27.724 24.6241C27.9362 25.1359 28.0455 25.6845 28.0455 26.2385C28.0455 26.7926 27.9362 27.3412 27.724 27.8529C27.5117 28.3647 27.2007 28.8296 26.8085 29.221Z" fill="#EF7E06"/>
+          <path d="M5.473 22.2144C8.49566 22.2144 10.946 19.764 10.946 16.7414C10.946 13.7187 8.49566 11.2684 5.473 11.2684C2.45035 11.2684 0 13.7187 0 16.7414C0 19.764 2.45035 22.2144 5.473 22.2144Z" fill="#F7B327"/>
+          <path d="M16.4495 11.2344C19.4722 11.2344 21.9225 8.78409 21.9225 5.76144C21.9225 2.73878 19.4722 0.288437 16.4495 0.288437C13.4268 0.288437 10.9765 2.73878 10.9765 5.76144C10.9765 8.78409 13.4268 11.2344 16.4495 11.2344Z" fill="#F7B327"/>
+          <path d="M31.6335 10.946C34.6561 10.946 37.1065 8.49566 37.1065 5.47301C37.1065 2.45035 34.6561 7.62939e-06 31.6335 7.62939e-06C28.6108 7.62939e-06 26.1605 2.45035 26.1605 5.47301C26.1605 8.49566 28.6108 10.946 31.6335 10.946Z" fill="#F7B327"/>
+          <path d="M42.6134 21.9226C45.636 21.9226 48.0864 19.4722 48.0864 16.4495C48.0864 13.4269 45.636 10.9765 42.6134 10.9765C39.5907 10.9765 37.1404 13.4269 37.1404 16.4495C37.1404 19.4722 39.5907 21.9226 42.6134 21.9226Z" fill="#F7B327"/>
+        </svg>
+      </div>
+      <h1 class="brand-name">PAWMATCH</h1>
+    </div>
+
+    <!-- Title -->
+    <h2 class="title">Sign in</h2>
+
+    <!-- Social Sign In Buttons -->
+    <div class="social-buttons">
+      <button mat-raised-button class="google-btn" (click)="signInWithGoogle()">
+        <mat-icon>
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+        </mat-icon>
+        <span>With Google</span>
+      </button>
+
+      <button mat-icon-button class="social-icon-btn facebook">
+        <mat-icon>facebook</mat-icon>
+      </button>
+
+      <button mat-icon-button class="social-icon-btn twitter">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider">
+      <span>Or with Email</span>
+    </div>
+
+    <!-- Error Message -->
+    @if (errorMessage()) {
+      <div class="error-message">
+        <mat-icon>error</mat-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Email/Password Form -->
+    <form class="email-form" (ngSubmit)="signInWithEmail()">
+      <mat-form-field appearance="outline" class="email-field">
+        <mat-label>Your Email</mat-label>
+        <input
+          matInput
+          type="email"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="email@example.com"
+          required
+        />
+        <mat-icon matSuffix class="input-icon">
+          @if (email()) {
+            <span class="check-icon">âœ“</span>
+          }
+        </mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="password-field">
+        <mat-label>Password</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+          required
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="togglePasswordVisibility()"
+          class="visibility-toggle"
+        >
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <div class="forgot-password">
+        <a routerLink="/forgot-password">Forgot?</a>
+      </div>
+
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        class="sign-in-btn"
+        [disabled]="isLoading()"
+      >
+        @if (isLoading()) {
+          <mat-spinner diameter="24"></mat-spinner>
+        } @else {
+          Sign In
+        }
+      </button>
+    </form>
+
+    <!-- Sign Up Link -->
+    <div class="sign-up-link">
+      <span>New User?</span>
+      <a routerLink="/welcome" class="sign-up-text">Sign Up</a>
+    </div>
+  </div>
+</div>
+
+```
+
+## File: src\app\pages\sign-in\sign-in.scss
+```scss
+.sign-in-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF5E6 0%, #FFFFFF 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+
+  .content {
+    width: 100%;
+    max-width: 400px;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .logo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 48px;
+
+    .logo {
+      margin-bottom: 16px;
+      animation: bounceIn 0.6s ease;
+    }
+
+    .brand-name {
+      font-size: 32px;
+      font-weight: 700;
+      color: #2C2C2C;
+      letter-spacing: 2px;
+      margin: 0;
+    }
+  }
+
+  .title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #2C2C2C;
+    text-align: center;
+    margin: 0 0 32px 0;
+  }
+
+  .social-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+
+    .google-btn {
+      flex: 1;
+      height: 56px;
+      background: #F6A51F !important;
+      color: white !important;
+      font-size: 16px;
+      font-weight: 500;
+      border-radius: 28px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: #FF8A00 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(246, 165, 31, 0.3);
+      }
+
+      mat-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+    }
+
+    .social-icon-btn {
+      width: 56px;
+      height: 56px;
+      border: 1px solid #E0E0E0;
+      background: white;
+      border-radius: 28px !important;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      &.facebook {
+        color: #1877F2;
+      }
+
+      &.twitter {
+        color: #000000;
+      }
+    }
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+    color: #666666;
+    font-size: 14px;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #E0E0E0;
+    }
+
+    span {
+      padding: 0 16px;
+    }
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #FFEBEE;
+    border-radius: 8px;
+    color: #C62828;
+    margin-bottom: 16px;
+    font-size: 14px;
+
+    mat-icon {
+      width: 20px;
+      height: 20px;
+      font-size: 20px;
+    }
+  }
+
+  .email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    mat-form-field {
+      width: 100%;
+
+      ::ng-deep {
+        .mat-mdc-text-field-wrapper {
+          background: #FFFFFF;
+          border-radius: 28px !important;
+        }
+
+        .mat-mdc-form-field-infix {
+          padding: 16px 0;
+        }
+
+        .mat-mdc-form-field-subscript-wrapper {
+          display: none;
+        }
+      }
+    }
+
+    .input-icon {
+      .check-icon {
+        color: #4CAF50;
+        font-size: 20px;
+      }
+    }
+
+    .visibility-toggle {
+      color: #999999;
+    }
+
+    .forgot-password {
+      text-align: right;
+      margin-top: -8px;
+
+      a {
+        color: #999999;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.3s ease;
+
+        &:hover {
+          color: #F6A51F;
+        }
+      }
+    }
+
+    .sign-in-btn {
+      height: 56px;
+      background: #FF8A00 !important;
+      color: white !important;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 28px !important;
+      margin-top: 8px;
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        background: #F6A51F !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(255, 138, 0, 0.3);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+      }
+
+      mat-spinner {
+        margin: 0 auto;
+
+        ::ng-deep circle {
+          stroke: white;
+        }
+      }
+    }
+  }
+
+  .sign-up-link {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 16px;
+    color: #666666;
+
+    .sign-up-text {
+      color: #FF8A00;
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 4px;
+      transition: color 0.3s ease;
+
+      &:hover {
+        color: #F6A51F;
+      }
+    }
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+```
+
+## File: src\app\pages\sign-in\sign-in.ts
+```ts
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AuthService } from '../../services/auth';
+import { StorageService } from '../../services/storage';
+
+@Component({
+  selector: 'app-sign-in',
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule
+  ],
+  templateUrl: './sign-in.html',
+  styleUrl: './sign-in.scss',
+})
+export class SignIn {
+  email = signal('');
+  password = signal('');
+  isLoading = signal(false);
+  errorMessage = signal('');
+  hidePassword = signal(true);
+
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private storage: StorageService
+  ) {}
+
+  async signInWithGoogle() {
+    // Mock Google sign-in - in real app would integrate with Google OAuth
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    const result = await this.authService.signIn({
+      email: 'demo@pawmatch.com',
+      password: 'password123'
+    });
+
+    this.isLoading.set(false);
+
+    if (result.success) {
+      // Check if user has already registered a dog
+      const myDog = this.storage.getItem('myDog');
+      if (myDog) {
+        this.router.navigate(['/match']);
+      } else {
+        this.router.navigate(['/register-dog']);
+      }
+    } else {
+      this.errorMessage.set(result.error || 'Sign in failed');
+    }
+  }
+
+  async signInWithEmail() {
+    if (!this.email() || !this.password()) {
+      this.errorMessage.set('Please enter email and password');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    const result = await this.authService.signIn({
+      email: this.email(),
+      password: this.password()
+    });
+
+    this.isLoading.set(false);
+
+    if (result.success) {
+      // Check if user has already registered a dog
+      const myDog = this.storage.getItem('myDog');
+      if (myDog) {
+        this.router.navigate(['/match']);
+      } else {
+        this.router.navigate(['/register-dog']);
+      }
+    } else {
+      this.errorMessage.set(result.error || 'Sign in failed');
+    }
+  }
+
+  togglePasswordVisibility() {
+    this.hidePassword.set(!this.hidePassword());
+  }
+}
+
+```
+
+## File: src\app\pages\welcome\welcome.html
+```html
+<div class="welcome-container">
+  <div class="content">
+    <!-- Hero Section -->
+    <div class="hero-section">
+      <div class="paw-icon">
+        <svg width="120" height="120" viewBox="0 0 49 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16.8499 19.276L7.30524 28.8139C5.456 30.6652 4.41728 33.175 4.41728 35.7917C4.41728 38.4084 5.456 40.9181 7.30524 42.7695C9.15661 44.6188 11.6663 45.6575 14.2831 45.6575C16.8998 45.6575 19.4095 44.6188 21.2609 42.7695L23.8226 40.2044L16.8465 33.2282C15.9304 32.312 15.2037 31.2243 14.708 30.0272C14.2124 28.8301 13.9574 27.5471 13.9577 26.2514C13.9581 24.9557 14.2136 23.6728 14.7099 22.476C15.2061 21.2791 15.9333 20.1917 16.8499 19.276Z" fill="#F7B327"/>
+          <path d="M30.8021 19.276C31.7185 20.192 32.4454 21.2795 32.9414 22.4765C33.4374 23.6735 33.6926 24.9564 33.6926 26.2521C33.6926 27.5478 33.4374 28.8308 32.9414 30.0277C32.4454 31.2247 31.7185 32.3123 30.8021 33.2282L23.826 40.2044L26.3912 42.7695C28.242 44.6185 30.7511 45.6572 33.3673 45.6572C35.9835 45.6572 38.4926 44.6185 40.3434 42.7695C41.2599 41.8532 41.9869 40.7654 42.4829 39.5681C42.9789 38.3709 43.2342 37.0876 43.2342 35.7917C43.2342 34.4957 42.9789 33.2125 42.4829 32.0152C41.9869 30.818 41.2599 29.7301 40.3434 28.8139L30.8021 19.276Z" fill="#F7B327"/>
+          <path d="M30.8022 19.276C29.8862 18.3596 28.7986 17.6327 27.6017 17.1367C26.4047 16.6408 25.1217 16.3855 23.8261 16.3855C22.5304 16.3855 21.2474 16.6408 20.0504 17.1367C18.8534 17.6327 17.7659 18.3596 16.8499 19.276C15.9336 20.192 15.2066 21.2795 14.7107 22.4765C14.2147 23.6735 13.9594 24.9564 13.9594 26.2521C13.9594 27.5478 14.2147 28.8307 14.7107 30.0277C15.2066 31.2247 15.9336 32.3122 16.8499 33.2282L23.8261 40.2043L30.8022 33.2282C31.7185 32.3122 32.4455 31.2247 32.9414 30.0277C33.4374 28.8307 33.6927 27.5478 33.6927 26.2521C33.6927 24.9564 33.4374 23.6735 32.9414 22.4765C32.4455 21.2795 31.7185 20.192 30.8022 19.276ZM26.8085 29.221C26.2187 29.8108 25.4672 30.2124 24.6491 30.3751C23.831 30.5378 22.983 30.4542 22.2124 30.135C21.4417 29.8158 20.7831 29.2752 20.3197 28.5816C19.8563 27.8881 19.6089 27.0727 19.6089 26.2385C19.6089 25.4044 19.8563 24.589 20.3197 23.8954C20.7831 23.2019 21.4417 22.6613 22.2124 22.3421C22.983 22.0228 23.831 21.9393 24.6491 22.1019C25.4672 22.2646 26.2187 22.6663 26.8085 23.256C27.2007 23.6474 27.5117 24.1123 27.724 24.6241C27.9362 25.1359 28.0455 25.6845 28.0455 26.2385C28.0455 26.7926 27.9362 27.3412 27.724 27.8529C27.5117 28.3647 27.2007 28.8296 26.8085 29.221Z" fill="#EF7E06"/>
+          <path d="M5.473 22.2144C8.49566 22.2144 10.946 19.764 10.946 16.7414C10.946 13.7187 8.49566 11.2684 5.473 11.2684C2.45035 11.2684 0 13.7187 0 16.7414C0 19.764 2.45035 22.2144 5.473 22.2144Z" fill="#F7B327"/>
+          <path d="M16.4495 11.2344C19.4722 11.2344 21.9225 8.78409 21.9225 5.76144C21.9225 2.73878 19.4722 0.288437 16.4495 0.288437C13.4268 0.288437 10.9765 2.73878 10.9765 5.76144C10.9765 8.78409 13.4268 11.2344 16.4495 11.2344Z" fill="#F7B327"/>
+          <path d="M31.6335 10.946C34.6561 10.946 37.1065 8.49566 37.1065 5.47301C37.1065 2.45035 34.6561 7.62939e-06 31.6335 7.62939e-06C28.6108 7.62939e-06 26.1605 2.45035 26.1605 5.47301C26.1605 8.49566 28.6108 10.946 31.6335 10.946Z" fill="#F7B327"/>
+          <path d="M42.6134 21.9226C45.636 21.9226 48.0864 19.4722 48.0864 16.4495C48.0864 13.4269 45.636 10.9765 42.6134 10.9765C39.5907 10.9765 37.1404 13.4269 37.1404 16.4495C37.1404 19.4722 39.5907 21.9226 42.6134 21.9226Z" fill="#F7B327"/>
+        </svg>
+      </div>
+
+      <h1 class="title">Find Your Dog's</h1>
+      <h1 class="title-highlight">Perfect Playmate!</h1>
+
+      <p class="subtitle">
+        Connect with local dog owners and arrange fun playdates for your furry friend
+      </p>
+    </div>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">
+          <mat-icon>location_on</mat-icon>
+        </div>
+        <div class="feature-text">
+          <h3>Local Matches</h3>
+          <p>Find dogs nearby</p>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <mat-icon>favorite</mat-icon>
+        </div>
+        <div class="feature-text">
+          <h3>Smart Matching</h3>
+          <p>Compatible playmates</p>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <mat-icon>pets</mat-icon>
+        </div>
+        <div class="feature-text">
+          <h3>Safe & Fun</h3>
+          <p>Verified dog owners</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button
+        mat-raised-button
+        color="primary"
+        class="primary-btn"
+        (click)="navigateToSignIn()"
+      >
+        Get Started
+      </button>
+
+      <!-- <button
+        mat-stroked-button
+        class="secondary-btn"
+        (click)="navigateToSignIn()"
+      >
+        I Have an Account
+      </button> -->
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>By continuing, you agree to our</p>
+      <div class="links">
+        <a href="#">Terms of Service</a>
+        <span>â€¢</span>
+        <a href="#">Privacy Policy</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decorative Elements -->
+  <div class="decoration decoration-1"></div>
+  <div class="decoration decoration-2"></div>
+  <div class="decoration decoration-3"></div>
+</div>
+
+```
+
+## File: src\app\pages\welcome\welcome.scss
+```scss
+.welcome-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF5E6 0%, #FFFFFF 50%, #FFF5E6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  position: relative;
+  overflow: hidden;
+
+  .content {
+    width: 100%;
+    max-width: 420px;
+    z-index: 1;
+    animation: fadeInUp 0.8s ease;
+  }
+
+  .hero-section {
+    text-align: center;
+    margin-bottom: 48px;
+
+    .paw-icon {
+      margin-bottom: 24px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .title {
+      font-size: 36px;
+      font-weight: 700;
+      color: #2C2C2C;
+      margin: 8px 0;
+      line-height: 1.2;
+    }
+
+    .title-highlight {
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 8px 0 24px 0;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #666666;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0 16px;
+    }
+  }
+
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 40px;
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      animation: slideInLeft 0.6s ease;
+
+      &:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: 0.2s;
+      }
+
+      &:hover {
+        transform: translateX(8px);
+        box-shadow: 0 4px 12px rgba(246, 165, 31, 0.2);
+      }
+
+      .feature-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        mat-icon {
+          color: white;
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .feature-text {
+        flex: 1;
+
+        h3 {
+          font-size: 18px;
+          font-weight: 600;
+          color: #2C2C2C;
+          margin: 0 0 4px 0;
+        }
+
+        p {
+          font-size: 14px;
+          color: #666666;
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+
+    .primary-btn {
+      height: 56px;
+      background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%) !important;
+      color: white !important;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 28px !important;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(246, 165, 31, 0.4);
+      }
+    }
+
+    .secondary-btn {
+      height: 56px;
+      border: 2px solid #F6A51F !important;
+      color: #F6A51F !important;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 28px !important;
+      background: white;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: #FFF5E6 !important;
+        transform: translateY(-2px);
+      }
+    }
+  }
+
+  .footer {
+    text-align: center;
+    font-size: 13px;
+    color: #999999;
+
+    p {
+      margin: 0 0 8px 0;
+    }
+
+    .links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      a {
+        color: #F6A51F;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+
+        &:hover {
+          color: #FF8A00;
+          text-decoration: underline;
+        }
+      }
+
+      span {
+        color: #CCCCCC;
+      }
+    }
+  }
+
+  // Decorative elements
+  .decoration {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.1;
+    pointer-events: none;
+
+    &.decoration-1 {
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(135deg, #F6A51F, #FF8A00);
+      top: -100px;
+      right: -100px;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    &.decoration-2 {
+      width: 200px;
+      height: 200px;
+      background: linear-gradient(135deg, #FF8A00, #F6A51F);
+      bottom: -50px;
+      left: -50px;
+      animation: float 8s ease-in-out infinite reverse;
+    }
+
+    &.decoration-3 {
+      width: 150px;
+      height: 150px;
+      background: linear-gradient(135deg, #F6A51F, #FF8A00);
+      top: 50%;
+      right: -75px;
+      animation: float 7s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+```
+
+## File: src\app\pages\welcome\welcome.ts
+```ts
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+
+@Component({
+  selector: 'app-welcome',
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule
+  ],
+  templateUrl: './welcome.html',
+  styleUrl: './welcome.scss',
+})
+export class Welcome {
+  constructor(private router: Router) {}
+
+  navigateToSignIn() {
+    this.router.navigate(['/sign-in']);
+  }
+
+  navigateToRegister() {
+    this.router.navigate(['/register-dog']);
+  }
+}
+
+```
+
+## File: src\app\services\auth.ts
+```ts
+import { Injectable, signal, computed } from '@angular/core';
+import { Router } from '@angular/router';
+import { User, LoginCredentials, AuthState } from '../models/auth.model';
+import { StorageService } from './storage';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthService {
+  private readonly AUTH_KEY = 'auth_state';
+
+  // Mock users database
+  private mockUsers = new Map<string, { password: string; user: User }>([
+    [
+      'demo@pawmatch.com',
+      {
+        password: 'password123',
+        user: {
+          id: '1',
+          email: 'demo@pawmatch.com',
+          name: 'Demo User',
+          createdAt: new Date()
+        }
+      }
+    ]
+  ]);
+
+  private authState = signal<AuthState>({
+    user: null,
+    token: null,
+    isAuthenticated: false
+  });
+
+  // Public signals
+  readonly user = computed(() => this.authState().user);
+  readonly isAuthenticated = computed(() => this.authState().isAuthenticated);
+
+  constructor(
+    private storage: StorageService,
+    private router: Router
+  ) {
+    this.loadAuthState();
+  }
+
+  /**
+   * Load authentication state from localStorage
+   */
+  private loadAuthState(): void {
+    const stored = this.storage.getItem<AuthState>(this.AUTH_KEY);
+    if (stored && stored.isAuthenticated) {
+      this.authState.set(stored);
+    }
+  }
+
+  /**
+   * Save authentication state to localStorage
+   */
+  private saveAuthState(state: AuthState): void {
+    this.storage.setItem(this.AUTH_KEY, state);
+    this.authState.set(state);
+  }
+
+  /**
+   * Sign in with email and password
+   */
+  signIn(credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const userRecord = this.mockUsers.get(credentials.email);
+
+        if (!userRecord || userRecord.password !== credentials.password) {
+          resolve({ success: false, error: 'Invalid email or password' });
+          return;
+        }
+
+        const authState: AuthState = {
+          user: userRecord.user,
+          token: 'mock-jwt-token-' + Date.now(),
+          isAuthenticated: true
+        };
+
+        this.saveAuthState(authState);
+        resolve({ success: true });
+      }, 500); // Simulate API delay
+    });
+  }
+
+  /**
+   * Sign up a new user
+   */
+  signUp(email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (this.mockUsers.has(email)) {
+          resolve({ success: false, error: 'Email already registered' });
+          return;
+        }
+
+        const newUser: User = {
+          id: Date.now().toString(),
+          email,
+          name,
+          createdAt: new Date()
+        };
+
+        this.mockUsers.set(email, { password, user: newUser });
+
+        const authState: AuthState = {
+          user: newUser,
+          token: 'mock-jwt-token-' + Date.now(),
+          isAuthenticated: true
+        };
+
+        this.saveAuthState(authState);
+        resolve({ success: true });
+      }, 500);
+    });
+  }
+
+  /**
+   * Sign out the current user
+   */
+  signOut(): void {
+    this.storage.removeItem(this.AUTH_KEY);
+    this.authState.set({
+      user: null,
+      token: null,
+      isAuthenticated: false
+    });
+    this.router.navigate(['/sign-in']);
+  }
+
+  /**
+   * Check if user is authenticated (for guards)
+   */
+  checkAuth(): boolean {
+    return this.authState().isAuthenticated;
+  }
+}
+
+```
+
+## File: src\app\services\image-compression.ts
+```ts
+import { Injectable } from '@angular/core';
+
+export interface ImageValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+export interface ImageCompressionOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+  format?: 'webp' | 'jpeg' | 'png';
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ImageCompressionService {
+  private readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+  private readonly MIN_DIMENSION = 256;
+  private readonly ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+  /**
+   * Validate image file before processing
+   */
+  async validateImage(file: File): Promise<ImageValidationResult> {
+    // Check file type
+    if (!this.ALLOWED_TYPES.includes(file.type)) {
+      return {
+        valid: false,
+        error: 'Invalid file type. Please upload JPEG, PNG, or WebP images only.'
+      };
+    }
+
+    // Check file size
+    if (file.size > this.MAX_FILE_SIZE) {
+      return {
+        valid: false,
+        error: 'File size exceeds 5MB limit.'
+      };
+    }
+
+    // Check image dimensions
+    try {
+      const dimensions = await this.getImageDimensions(file);
+      if (dimensions.width < this.MIN_DIMENSION || dimensions.height < this.MIN_DIMENSION) {
+        return {
+          valid: false,
+          error: `Image dimensions must be at least ${this.MIN_DIMENSION}x${this.MIN_DIMENSION}px.`
+        };
+      }
+    } catch (error) {
+      return {
+        valid: false,
+        error: 'Failed to read image dimensions.'
+      };
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Compress and convert image to WebP format
+   */
+  async compressImage(
+    file: File,
+    options: ImageCompressionOptions = {}
+  ): Promise<string> {
+    const {
+      maxWidth = 1024,
+      maxHeight = 1024,
+      quality = 0.8,
+      format = 'webp'
+    } = options;
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+
+            // Calculate new dimensions while maintaining aspect ratio
+            if (width > maxWidth || height > maxHeight) {
+              const ratio = Math.min(maxWidth / width, maxHeight / height);
+              width = Math.floor(width * ratio);
+              height = Math.floor(height * ratio);
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Failed to get canvas context'));
+              return;
+            }
+
+            // Draw and compress
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convert to WebP
+            const mimeType = `image/${format}`;
+            const compressedDataUrl = canvas.toDataURL(mimeType, quality);
+
+            // Clean up
+            canvas.remove();
+            URL.revokeObjectURL(img.src);
+
+            resolve(compressedDataUrl);
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        img.onerror = () => {
+          reject(new Error('Failed to load image'));
+        };
+
+        img.src = e.target?.result as string;
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Get image dimensions from file
+   */
+  private getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          resolve({ width: img.width, height: img.height });
+          URL.revokeObjectURL(img.src);
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Convert data URL to Blob (useful for uploading to server)
+   */
+  dataURLtoBlob(dataURL: string): Blob {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/webp';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  }
+
+  /**
+   * Get file size in human readable format
+   */
+  getFileSizeString(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  }
+}
+
+```
+
+## File: src\app\services\mock-dog.ts
+```ts
+import { Injectable, signal } from '@angular/core';
+import { Dog, DogFilters, SwipeAction, Match } from '../models/dog.model';
+import { StorageService } from './storage';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class MockDogService {
+  private readonly SWIPES_KEY = 'swipes';
+  private readonly MATCHES_KEY = 'matches';
+
+  // Mock dog database
+  private mockDogs: Dog[] = [
+    {
+      id: '1',
+      name: 'Max',
+      breed: 'Golden Retriever',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'high',
+      activities: ['Walking', 'Fetch', 'Swimming', 'Dog Parks'],
+      bio: 'Friendly and energetic! Love meeting new friends at the park.',
+      imageUrl: 'https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner1',
+      ownerName: 'Sarah Johnson'
+    },
+    {
+      id: '2',
+      name: 'Bella',
+      breed: 'Labrador Retriever',
+      age: 2,
+      gender: 'female',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Swimming', 'Fetch'],
+      bio: 'Always ready for an adventure! Let\'s explore trails together.',
+      imageUrl: 'https://images.unsplash.com/photo-1591769225440-811ad7d6eab3?w=800',
+      location: { lat: 18.7883, lng: 98.9853, city: 'Chiang Mai' },
+      ownerId: 'owner2',
+      ownerName: 'Michael Chen'
+    },
+    {
+      id: '3',
+      name: 'Charlie',
+      breed: 'French Bulldog',
+      age: 1,
+      gender: 'male',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Dog Parks', 'Training'],
+      bio: 'Playful pup who loves to snuggle. Great with other dogs!',
+      imageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner3',
+      ownerName: 'Emma Davis'
+    },
+    {
+      id: '4',
+      name: 'Luna',
+      breed: 'Border Collie',
+      age: 4,
+      gender: 'female',
+      size: 'medium',
+      energy: 'very-high',
+      activities: ['Agility', 'Running', 'Training', 'Fetch'],
+      bio: 'Smart and athletic! Looking for active playmates.',
+      imageUrl: 'https://images.unsplash.com/photo-1568572933382-74d440642117?w=800',
+      location: { lat: 7.8804, lng: 98.3923, city: 'Phuket' },
+      ownerId: 'owner4',
+      ownerName: 'James Wilson'
+    },
+    {
+      id: '5',
+      name: 'Cooper',
+      breed: 'Australian Shepherd',
+      age: 3,
+      gender: 'male',
+      size: 'medium',
+      energy: 'high',
+      activities: ['Hiking', 'Running', 'Agility', 'Beach'],
+      bio: 'Adventurous and loyal companion. Love outdoor activities!',
+      imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800',
+      location: { lat: 13.3611, lng: 100.9847, city: 'Chon Buri' },
+      ownerId: 'owner5',
+      ownerName: 'Olivia Martinez'
+    },
+    {
+      id: '6',
+      name: 'Daisy',
+      breed: 'Beagle',
+      age: 5,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Dog Parks', 'Fetch'],
+      bio: 'Sweet and curious! Always following my nose.',
+      imageUrl: 'https://images.unsplash.com/photo-1505628346881-b72b27e84530?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner6',
+      ownerName: 'William Brown'
+    },
+    {
+      id: '7',
+      name: 'Rocky',
+      breed: 'German Shepherd',
+      age: 4,
+      gender: 'male',
+      size: 'large',
+      energy: 'high',
+      activities: ['Running', 'Training', 'Hiking', 'Agility'],
+      bio: 'Protective and smart. Love learning new tricks!',
+      imageUrl: 'https://images.unsplash.com/photo-1568393691622-c7ba131d63b4?w=800',
+      location: { lat: 18.7883, lng: 98.9853, city: 'Chiang Mai' },
+      ownerId: 'owner7',
+      ownerName: 'Sophia Anderson'
+    },
+    {
+      id: '8',
+      name: 'Molly',
+      breed: 'Poodle',
+      age: 2,
+      gender: 'female',
+      size: 'medium',
+      energy: 'moderate',
+      activities: ['Walking', 'Training', 'Dog Parks'],
+      bio: 'Elegant and friendly. Enjoy meeting new friends!',
+      imageUrl: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=800',
+      location: { lat: 14.0208, lng: 100.5230, city: 'Nonthaburi' },
+      ownerId: 'owner8',
+      ownerName: 'Daniel Lee'
+    },
+    {
+      id: '9',
+      name: 'Buddy',
+      breed: 'Boxer',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'high',
+      activities: ['Running', 'Fetch', 'Dog Parks', 'Beach'],
+      bio: 'Energetic and fun-loving! Always up for playtime.',
+      imageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner9',
+      ownerName: 'Ava Taylor'
+    },
+    {
+      id: '10',
+      name: 'Sadie',
+      breed: 'Pembroke Welsh Corgi',
+      age: 2,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Fetch', 'Dog Parks'],
+      bio: 'Short legs, big personality! Love making new friends.',
+      imageUrl: 'https://images.unsplash.com/photo-1546527868-ccb7ee7dfa6a?w=800',
+      location: { lat: 13.5282, lng: 100.2638, city: 'Samut Sakhon' },
+      ownerId: 'owner10',
+      ownerName: 'Noah White'
+    },
+    {
+      id: '11',
+      name: 'Duke',
+      breed: 'Rottweiler',
+      age: 5,
+      gender: 'male',
+      size: 'giant',
+      energy: 'moderate',
+      activities: ['Walking', 'Training', 'Hiking'],
+      bio: 'Gentle giant with a big heart. Protective but friendly.',
+      imageUrl: 'https://images.unsplash.com/photo-1567752881298-894bb81f9379?w=800',
+      location: { lat: 19.9071, lng: 99.8325, city: 'Chiang Rai' },
+      ownerId: 'owner11',
+      ownerName: 'Isabella Harris'
+    },
+    {
+      id: '12',
+      name: 'Rosie',
+      breed: 'Cavalier King Charles Spaniel',
+      age: 1,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Training'],
+      bio: 'Gentle and affectionate. Perfect cuddle buddy!',
+      imageUrl: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner12',
+      ownerName: 'Liam Clark'
+    },
+    {
+      id: '13',
+      name: 'Zeus',
+      breed: 'Siberian Husky',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Swimming', 'Agility'],
+      bio: 'Adventurous spirit! Love exploring and outdoor fun.',
+      imageUrl: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=800',
+      location: { lat: 7.8804, lng: 98.3923, city: 'Phuket' },
+      ownerId: 'owner13',
+      ownerName: 'Mia Rodriguez'
+    },
+    {
+      id: '14',
+      name: 'Coco',
+      breed: 'Yorkshire Terrier',
+      age: 4,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Dog Parks'],
+      bio: 'Small but mighty! Love being the center of attention.',
+      imageUrl: 'https://images.unsplash.com/photo-1516598540642-e8f40a09d939?w=800',
+      location: { lat: 13.5906, lng: 100.6018, city: 'Samut Prakan' },
+      ownerId: 'owner14',
+      ownerName: 'Ethan Martinez'
+    },
+    {
+      id: '15',
+      name: 'Jack',
+      breed: 'Boston Terrier',
+      age: 2,
+      gender: 'male',
+      size: 'small',
+      energy: 'high',
+      activities: ['Fetch', 'Dog Parks', 'Training'],
+      bio: 'Playful and intelligent. Always ready for fun!',
+      imageUrl: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800',
+      location: { lat: 18.7883, lng: 98.9853, city: 'Chiang Mai' },
+      ownerId: 'owner15',
+      ownerName: 'Charlotte Garcia'
+    },
+    {
+      id: '16',
+      name: 'Ruby',
+      breed: 'Dachshund',
+      age: 3,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Fetch', 'Dog Parks'],
+      bio: 'Curious and brave! Love exploring new places.',
+      imageUrl: 'https://images.unsplash.com/photo-1612536616623-ef7e5660edbc?w=800',
+      location: { lat: 14.9930, lng: 102.0977, city: 'Khon Kaen' },
+      ownerId: 'owner16',
+      ownerName: 'Mason Thompson'
+    },
+    {
+      id: '17',
+      name: 'Bear',
+      breed: 'Great Dane',
+      age: 4,
+      gender: 'male',
+      size: 'giant',
+      energy: 'moderate',
+      activities: ['Walking', 'Beach', 'Dog Parks'],
+      bio: 'Big softie who loves everyone. Gentle with all dogs!',
+      imageUrl: 'https://images.unsplash.com/photo-1567529692333-de9fd6772897?w=800',
+      location: { lat: 9.1382, lng: 99.3336, city: 'Surat Thani' },
+      ownerId: 'owner17',
+      ownerName: 'Amelia Wilson'
+    },
+    {
+      id: '18',
+      name: 'Penny',
+      breed: 'Shih Tzu',
+      age: 5,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Training'],
+      bio: 'Sweet and calm. Looking for gentle playmates.',
+      imageUrl: 'https://images.unsplash.com/photo-1612774412231-1c4b5c3c836b?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner18',
+      ownerName: 'Lucas Moore'
+    },
+    {
+      id: '19',
+      name: 'Oliver',
+      breed: 'Miniature Schnauzer',
+      age: 2,
+      gender: 'male',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Training', 'Dog Parks', 'Fetch'],
+      bio: 'Alert and friendly! Love playing with other small dogs.',
+      imageUrl: 'https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?w=800',
+      location: { lat: 14.3532, lng: 100.5699, city: 'Pathum Thani' },
+      ownerId: 'owner19',
+      ownerName: 'Harper Jackson'
+    },
+    {
+      id: '20',
+      name: 'Zoey',
+      breed: 'Mixed Breed',
+      age: 3,
+      gender: 'female',
+      size: 'medium',
+      energy: 'high',
+      activities: ['Running', 'Hiking', 'Dog Parks', 'Swimming'],
+      bio: 'Unique and lovable! Best of many breeds in one.',
+      imageUrl: 'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=800',
+      location: { lat: 13.3611, lng: 100.9847, city: 'Chon Buri' },
+      ownerId: 'owner20',
+      ownerName: 'Benjamin Davis'
+    },
+    {
+      id: '21',
+      name: 'Milo',
+      breed: 'Pomeranian',
+      age: 2,
+      gender: 'male',
+      size: 'small',
+      energy: 'high',
+      activities: ['Walking', 'Dog Parks', 'Training', 'Fetch'],
+      bio: 'Fluffy ball of energy! Love to play and show off tricks.',
+      imageUrl: 'https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=800',
+      location: { lat: 13.7563, lng: 100.5018, city: 'Bangkok' },
+      ownerId: 'owner21',
+      ownerName: 'Evelyn Martinez'
+    },
+    {
+      id: '22',
+      name: 'Lola',
+      breed: 'Doberman Pinscher',
+      age: 4,
+      gender: 'female',
+      size: 'large',
+      energy: 'high',
+      activities: ['Running', 'Training', 'Agility', 'Hiking'],
+      bio: 'Athletic and loyal. Looking for active companions!',
+      imageUrl: 'https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?w=800',
+      location: { lat: 18.2932, lng: 99.4902, city: 'Lamphun' },
+      ownerId: 'owner22',
+      ownerName: 'Sebastian Lee'
+    },
+    {
+      id: '23',
+      name: 'Teddy',
+      breed: 'Bulldog',
+      age: 5,
+      gender: 'male',
+      size: 'medium',
+      energy: 'low',
+      activities: ['Walking', 'Dog Parks'],
+      bio: 'Laid-back and lovable. Prefer short walks and lots of naps.',
+      imageUrl: 'https://images.unsplash.com/photo-1583511655826-05700d52f4d9?w=800',
+      location: { lat: 7.0055, lng: 100.4737, city: 'Songkhla' },
+      ownerId: 'owner23',
+      ownerName: 'Victoria Chen'
+    },
+    {
+      id: '24',
+      name: 'Nala',
+      breed: 'German Shorthaired Pointer',
+      age: 3,
+      gender: 'female',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Swimming', 'Fetch', 'Camping'],
+      bio: 'Born to run! Need active friends who love adventures.',
+      imageUrl: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=800',
+      location: { lat: 12.6111, lng: 99.9576, city: 'Prachuap Khiri Khan' },
+      ownerId: 'owner24',
+      ownerName: 'Jackson White'
+    },
+    {
+      id: '25',
+      name: 'Finn',
+      breed: 'Mixed Breed',
+      age: 1,
+      gender: 'male',
+      size: 'medium',
+      energy: 'high',
+      activities: ['Fetch', 'Dog Parks', 'Running', 'Beach'],
+      bio: 'Young and playful! Still learning but love making friends.',
+      imageUrl: 'https://images.unsplash.com/photo-1587764379873-97837921fd44?w=800',
+      location: { lat: 12.9236, lng: 100.8825, city: 'Rayong' },
+      ownerId: 'owner25',
+      ownerName: 'Scarlett Brown'
+    },
+    {
+      id: '26',
+      name: 'Sophie',
+      breed: 'Cocker Spaniel',
+      age: 4,
+      gender: 'female',
+      size: 'medium',
+      energy: 'moderate',
+      activities: ['Walking', 'Swimming', 'Fetch', 'Dog Parks'],
+      bio: 'Sweet and gentle soul. Love water and cuddles!',
+      imageUrl: 'https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=800',
+      location: { lat: 15.2286, lng: 104.8517, city: 'Ubon Ratchathani' },
+      ownerId: 'owner26',
+      ownerName: 'Henry Garcia'
+    },
+    {
+      id: '27',
+      name: 'Thor',
+      breed: 'Boxer',
+      age: 2,
+      gender: 'male',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Fetch', 'Dog Parks', 'Agility', 'Training'],
+      bio: 'Strong and energetic! Always ready for action.',
+      imageUrl: 'https://images.unsplash.com/photo-1568572933382-74d440642117?w=800',
+      location: { lat: 14.8818, lng: 100.9133, city: 'Saraburi' },
+      ownerId: 'owner27',
+      ownerName: 'Grace Wilson'
+    },
+    {
+      id: '28',
+      name: 'Lily',
+      breed: 'Maltese',
+      age: 3,
+      gender: 'female',
+      size: 'small',
+      energy: 'low',
+      activities: ['Walking', 'Training'],
+      bio: 'Delicate and affectionate. Perfect lap dog companion!',
+      imageUrl: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800',
+      location: { lat: 8.0863, lng: 98.9063, city: 'Krabi' },
+      ownerId: 'owner28',
+      ownerName: 'Matthew Taylor'
+    },
+    {
+      id: '29',
+      name: 'Ace',
+      breed: 'Weimaraner',
+      age: 3,
+      gender: 'male',
+      size: 'large',
+      energy: 'very-high',
+      activities: ['Running', 'Hiking', 'Fetch', 'Camping', 'Beach'],
+      bio: 'Sleek and athletic! Love long runs and outdoor fun.',
+      imageUrl: 'https://images.unsplash.com/photo-1600804931749-2da4ce26c869?w=800',
+      location: { lat: 15.8700, lng: 100.9925, city: 'Nakhon Sawan' },
+      ownerId: 'owner29',
+      ownerName: 'Chloe Martinez'
+    },
+    {
+      id: '30',
+      name: 'Pepper',
+      breed: 'Border Terrier',
+      age: 4,
+      gender: 'female',
+      size: 'small',
+      energy: 'moderate',
+      activities: ['Walking', 'Fetch', 'Dog Parks', 'Training'],
+      bio: 'Spunky and smart! Love learning new tricks.',
+      imageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800',
+      location: { lat: 17.4138, lng: 102.7875, city: 'Udon Thani' },
+      ownerId: 'owner30',
+      ownerName: 'Alexander Harris'
+    }
+  ];
+
+  private swipes = signal<SwipeAction[]>([]);
+  private matches = signal<Match[]>([]);
+
+  constructor(private storage: StorageService) {
+    this.loadSwipesAndMatches();
+  }
+
+  private loadSwipesAndMatches(): void {
+    const savedSwipes = this.storage.getItem<SwipeAction[]>(this.SWIPES_KEY);
+    const savedMatches = this.storage.getItem<Match[]>(this.MATCHES_KEY);
+
+    if (savedSwipes) {
+      this.swipes.set(savedSwipes);
+    }
+    if (savedMatches) {
+      this.matches.set(savedMatches);
+    }
+  }
+
+  /**
+   * Get dogs based on filters
+   */
+  getDogs(filters: DogFilters): Promise<Dog[]> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const swipedIds = new Set(this.swipes().map(s => s.dogId));
+
+        let filtered = this.mockDogs.filter(dog => !swipedIds.has(dog.id));
+        console.log('Before filtering:', filtered.length, 'dogs');
+        console.log('Filters:', filters);
+
+        // Apply filters
+        if (filters.breeds.length > 0) {
+          filtered = filtered.filter(dog => filters.breeds.includes(dog.breed));
+          console.log('After breed filter:', filtered.length, 'dogs');
+        }
+
+        if (filters.sizes.length > 0) {
+          filtered = filtered.filter(dog => filters.sizes.includes(dog.size));
+          console.log('After size filter:', filtered.length, 'dogs');
+        }
+
+        if (filters.energyLevels.length > 0) {
+          filtered = filtered.filter(dog => filters.energyLevels.includes(dog.energy));
+          console.log('After energy filter:', filtered.length, 'dogs');
+        }
+
+        if (filters.activities.length > 0) {
+          filtered = filtered.filter(dog =>
+            filters.activities.some(activity => dog.activities.includes(activity))
+          );
+          console.log('After activities filter:', filtered.length, 'dogs');
+        }
+
+        // Age filter
+        filtered = filtered.filter(dog =>
+          dog.age >= filters.ageRange.min && dog.age <= filters.ageRange.max
+        );
+        console.log('After age filter:', filtered.length, 'dogs');
+
+        // Simple location filter (in real app, would use distance calculation)
+        // For now, just return filtered results
+
+        console.log('Final filtered dogs:', filtered.length);
+        resolve(filtered);
+      }, 300);
+    });
+  }
+
+  /**
+   * Submit a swipe action
+   */
+  submitSwipe(dogId: string, action: 'pass' | 'like' | 'favorite'): Promise<{ isMatch: boolean; match?: Match }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const swipeAction: SwipeAction = {
+          dogId,
+          action,
+          timestamp: new Date()
+        };
+
+        const updatedSwipes = [...this.swipes(), swipeAction];
+        this.swipes.set(updatedSwipes);
+        this.storage.setItem(this.SWIPES_KEY, updatedSwipes);
+
+        // Tinder-style matching: simulate if the other dog liked us back
+        // Only 'like' and 'favorite' can match
+        let isMatch = false;
+
+        if (action === 'like' || action === 'favorite') {
+          // Simulate 30% chance that the other dog also liked us
+          const mutualLikeChance = 0.3;
+          isMatch = Math.random() < mutualLikeChance;
+        }
+
+        if (isMatch) {
+          const dog = this.mockDogs.find(d => d.id === dogId);
+          if (dog) {
+            const match: Match = {
+              id: Date.now().toString(),
+              dog,
+              matchedAt: new Date()
+            };
+
+            const updatedMatches = [...this.matches(), match];
+            this.matches.set(updatedMatches);
+            this.storage.setItem(this.MATCHES_KEY, updatedMatches);
+
+            resolve({ isMatch: true, match });
+            return;
+          }
+        }
+
+        resolve({ isMatch: false });
+      }, 300);
+    });
+  }
+
+  /**
+   * Get all matches
+   */
+  getMatches(): Promise<Match[]> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(this.matches());
+      }, 200);
+    });
+  }
+
+  /**
+   * Undo last swipe
+   */
+  undoLastSwipe(): Promise<Dog | null> {
+    return new Promise((resolve) => {
+      const currentSwipes = this.swipes();
+      if (currentSwipes.length === 0) {
+        resolve(null);
+        return;
+      }
+
+      const lastSwipe = currentSwipes[currentSwipes.length - 1];
+      const updatedSwipes = currentSwipes.slice(0, -1);
+
+      this.swipes.set(updatedSwipes);
+      this.storage.setItem(this.SWIPES_KEY, updatedSwipes);
+
+      const dog = this.mockDogs.find(d => d.id === lastSwipe.dogId);
+      resolve(dog || null);
+    });
+  }
+
+  /**
+   * Get dog by ID
+   */
+  getDogById(id: string): Dog | undefined {
+    return this.mockDogs.find(d => d.id === id);
+  }
+
+  /**
+   * Clear all matches
+   */
+  clearMatches(): Promise<void> {
+    return new Promise((resolve) => {
+      this.matches.set([]);
+      this.storage.removeItem(this.MATCHES_KEY);
+      resolve();
+    });
+  }
+
+  /**
+   * Clear all swipes and matches
+   */
+  clearAll(): Promise<void> {
+    return new Promise((resolve) => {
+      this.swipes.set([]);
+      this.matches.set([]);
+      this.storage.removeItem(this.SWIPES_KEY);
+      this.storage.removeItem(this.MATCHES_KEY);
+      resolve();
+    });
+  }
+
+  /**
+   * Get statistics
+   * - Swipes: count pass + like
+   * - Matches: count like that matched
+   * - Favorites: count favorite
+   */
+  getStats(): { totalSwipes: number; matches: number; favorites: number } {
+    const allSwipes = this.swipes();
+    const allMatches = this.matches();
+
+    // Swipes: à¸™à¸±à¸š pass à¹à¸¥à¸° like (à¹„à¸¡à¹ˆà¸™à¸±à¸š favorite)
+    const totalSwipes = allSwipes.filter(s => s.action === 'pass' || s.action === 'like').length;
+
+    // Matches: à¸™à¸±à¸š like à¸—à¸µà¹ˆ match à¸ªà¸³à¹€à¸£à¹‡à¸ˆ
+    const matches = allMatches.length;
+
+    // Favorites: à¸™à¸±à¸š favorite
+    const favorites = allSwipes.filter(s => s.action === 'favorite').length;
+
+    return {
+      totalSwipes,
+      matches,
+      favorites
+    };
+  }
+}
+
+```
+
+## File: src\app\services\storage.spec.ts
+```ts
+import { TestBed } from '@angular/core/testing';
+import { StorageService } from './storage';
+
+describe('StorageService', () => {
+  let service: StorageService;
+  const TEST_KEY = 'test_key';
+  const TEST_VALUE = { name: 'Test', value: 123 };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(StorageService);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+
+  describe('setItem and getItem', () => {
+    it('should store and retrieve item', () => {
+      service.setItem(TEST_KEY, TEST_VALUE);
+      const result = service.getItem<typeof TEST_VALUE>(TEST_KEY);
+
+      expect(result).toEqual(TEST_VALUE);
+    });
+
+    it('should return null for non-existent item', () => {
+      const result = service.getItem('non_existent');
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle complex objects', () => {
+      const complexObj = {
+        id: 1,
+        nested: { value: 'test' },
+        array: [1, 2, 3]
+      };
+
+      service.setItem(TEST_KEY, complexObj);
+      const result = service.getItem<typeof complexObj>(TEST_KEY);
+
+      expect(result).toEqual(complexObj);
+    });
+  });
+
+  describe('removeItem', () => {
+    it('should remove item from storage', () => {
+      service.setItem(TEST_KEY, TEST_VALUE);
+      service.removeItem(TEST_KEY);
+      const result = service.getItem(TEST_KEY);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('clear', () => {
+    it('should clear all items with prefix', () => {
+      service.setItem('key1', 'value1');
+      service.setItem('key2', 'value2');
+      service.clear();
+
+      expect(service.getItem('key1')).toBeNull();
+      expect(service.getItem('key2')).toBeNull();
+    });
+  });
+
+  describe('createPersistedSignal', () => {
+    it('should create signal with initial value', () => {
+      const signal = service.createPersistedSignal(TEST_KEY, 'initial');
+
+      expect(signal()).toBe('initial');
+    });
+
+    it('should persist value when set', () => {
+      const signal = service.createPersistedSignal(TEST_KEY, 'initial');
+      signal.set('updated');
+
+      const stored = service.getItem<string>(TEST_KEY);
+      expect(stored).toBe('updated');
+      expect(signal()).toBe('updated');
+    });
+
+    it('should load persisted value on creation', () => {
+      service.setItem(TEST_KEY, 'persisted');
+      const signal = service.createPersistedSignal(TEST_KEY, 'initial');
+
+      expect(signal()).toBe('persisted');
+    });
+  });
+});
+
+```
+
+## File: src\app\services\storage.ts
+```ts
+import { Injectable, signal, Signal, PLATFORM_ID, inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class StorageService {
+  private readonly PREFIX = 'pawmatch_';
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly isBrowser = isPlatformBrowser(this.platformId);
+
+  /**
+   * Get an item from localStorage
+   */
+  getItem<T>(key: string): T | null {
+    if (!this.isBrowser) {
+      return null;
+    }
+
+    try {
+      const item = localStorage.getItem(this.PREFIX + key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set an item in localStorage
+   */
+  setItem<T>(key: string, value: T): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Error writing to localStorage:', error);
+    }
+  }
+
+  /**
+   * Remove an item from localStorage
+   */
+  removeItem(key: string): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    try {
+      localStorage.removeItem(this.PREFIX + key);
+    } catch (error) {
+      console.error('Error removing from localStorage:', error);
+    }
+  }
+
+  /**
+   * Clear all items from localStorage with our prefix
+   */
+  clear(): void {
+    if (!this.isBrowser) {
+      return;
+    }
+
+    try {
+      const keys = Object.keys(localStorage).filter(key =>
+        key.startsWith(this.PREFIX)
+      );
+      keys.forEach(key => localStorage.removeItem(key));
+    } catch (error) {
+      console.error('Error clearing localStorage:', error);
+    }
+  }
+
+  /**
+   * Create a signal backed by localStorage
+   */
+  createPersistedSignal<T>(key: string, initialValue: T): Signal<T> & { set: (value: T) => void } {
+    const stored = this.getItem<T>(key);
+    const sig = signal<T>(stored ?? initialValue);
+
+    const originalSet = sig.set.bind(sig);
+    const wrappedSet = (value: T) => {
+      originalSet(value);
+      this.setItem(key, value);
+    };
+
+    return Object.assign(sig, { set: wrappedSet });
+  }
+}
+
+```
+
+## File: src\app\services\swipe-engine.spec.ts
+```ts
+import { TestBed } from '@angular/core/testing';
+import { SwipeEngineService } from './swipe-engine';
+
+describe('SwipeEngineService', () => {
+  let service: SwipeEngineService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(SwipeEngineService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+
+  describe('calculateSwipeState', () => {
+    it('should calculate correct deltas', () => {
+      const state = service.calculateSwipeState(100, 100, 200, 150, true);
+
+      expect(state.deltaX).toBe(100);
+      expect(state.deltaY).toBe(50);
+      expect(state.isDragging).toBe(true);
+    });
+
+    it('should calculate rotation based on horizontal movement', () => {
+      const state = service.calculateSwipeState(100, 100, 200, 100, true);
+
+      expect(state.rotation).toBeGreaterThan(0);
+    });
+
+    it('should determine left direction for negative deltaX', () => {
+      const state = service.calculateSwipeState(200, 100, 100, 100, true);
+
+      expect(state.direction).toBe('left');
+    });
+
+    it('should determine right direction for positive deltaX', () => {
+      const state = service.calculateSwipeState(100, 100, 200, 100, true);
+
+      expect(state.direction).toBe('right');
+    });
+
+    it('should determine up direction for negative deltaY', () => {
+      const state = service.calculateSwipeState(100, 200, 100, 50, true);
+
+      expect(state.direction).toBe('up');
+    });
+  });
+
+  describe('shouldTriggerSwipe', () => {
+    it('should not trigger swipe below threshold', () => {
+      const state = service.calculateSwipeState(100, 100, 110, 100, false);
+      const result = service.shouldTriggerSwipe(state);
+
+      expect(result.triggered).toBe(false);
+      expect(result.action).toBe(null);
+    });
+
+    it('should trigger pass action for left swipe above threshold', () => {
+      const state = service.calculateSwipeState(200, 100, 50, 100, false);
+      const result = service.shouldTriggerSwipe(state);
+
+      expect(result.triggered).toBe(true);
+      expect(result.action).toBe('pass');
+    });
+
+    it('should trigger like action for right swipe above threshold', () => {
+      const state = service.calculateSwipeState(100, 100, 250, 100, false);
+      const result = service.shouldTriggerSwipe(state);
+
+      expect(result.triggered).toBe(true);
+      expect(result.action).toBe('like');
+    });
+
+    it('should trigger favorite action for upward swipe above threshold', () => {
+      const state = service.calculateSwipeState(100, 200, 100, 50, false);
+      const result = service.shouldTriggerSwipe(state);
+
+      expect(result.triggered).toBe(true);
+      expect(result.action).toBe('favorite');
+    });
+  });
+
+  describe('getCardTransform', () => {
+    it('should return identity transform for zero deltas', () => {
+      const state = service.calculateSwipeState(0, 0, 0, 0, false);
+      const transform = service.getCardTransform(state);
+
+      expect(transform).toBe('translate(0, 0) rotate(0deg)');
+    });
+
+    it('should return correct transform with deltas', () => {
+      const state = service.calculateSwipeState(100, 100, 150, 120, true);
+      const transform = service.getCardTransform(state);
+
+      expect(transform).toContain('translate(50px, 20px)');
+      expect(transform).toContain('rotate(');
+    });
+  });
+
+  describe('getOverlayLabel', () => {
+    it('should return pass label for left direction', () => {
+      const label = service.getOverlayLabel('left');
+
+      expect(label).not.toBeNull();
+      expect(label?.text).toBe('PASS');
+      expect(label?.class).toBe('pass');
+    });
+
+    it('should return like label for right direction', () => {
+      const label = service.getOverlayLabel('right');
+
+      expect(label).not.toBeNull();
+      expect(label?.text).toBe('LIKE');
+      expect(label?.class).toBe('like');
+    });
+
+    it('should return favorite label for up direction', () => {
+      const label = service.getOverlayLabel('up');
+
+      expect(label).not.toBeNull();
+      expect(label?.text).toBe('FAVORITE');
+      expect(label?.class).toBe('favorite');
+    });
+
+    it('should return null for none direction', () => {
+      const label = service.getOverlayLabel('none');
+
+      expect(label).toBeNull();
+    });
+  });
+
+  describe('configuration', () => {
+    it('should return current config', () => {
+      const config = service.getConfig();
+
+      expect(config.threshold).toBeDefined();
+      expect(config.rotationFactor).toBeDefined();
+      expect(config.snapBackDuration).toBeDefined();
+    });
+
+    it('should update config', () => {
+      service.updateConfig({ threshold: 150 });
+      const config = service.getConfig();
+
+      expect(config.threshold).toBe(150);
+    });
+  });
+});
+
+```
+
+## File: src\app\services\swipe-engine.ts
+```ts
+import { Injectable } from '@angular/core';
+
+export interface SwipeConfig {
+  threshold: number; // Distance threshold for swipe detection
+  rotationFactor: number; // How much rotation during drag
+  snapBackDuration: number; // Animation duration for snap back
+}
+
+export interface SwipeState {
+  isDragging: boolean;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  deltaX: number;
+  deltaY: number;
+  rotation: number;
+  opacity: number;
+  direction: 'none' | 'left' | 'right' | 'up';
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class SwipeEngineService {
+  private config: SwipeConfig = {
+    threshold: 100,
+    rotationFactor: 20,
+    snapBackDuration: 200
+  };
+
+  /**
+   * Calculate swipe state from drag movement
+   */
+  calculateSwipeState(
+    startX: number,
+    startY: number,
+    currentX: number,
+    currentY: number,
+    isDragging: boolean
+  ): SwipeState {
+    const deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    // Calculate rotation based on horizontal movement
+    const rotation = (deltaX / window.innerWidth) * this.config.rotationFactor;
+
+    // Calculate opacity based on distance
+    const opacity = Math.max(0.5, 1 - distance / (this.config.threshold * 3));
+
+    // Determine direction
+    let direction: 'none' | 'left' | 'right' | 'up' = 'none';
+
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // Horizontal swipe
+      if (Math.abs(deltaX) > this.config.threshold / 2) {
+        direction = deltaX > 0 ? 'right' : 'left';
+      }
+    } else {
+      // Vertical swipe
+      if (deltaY < -this.config.threshold / 2) {
+        direction = 'up';
+      }
+    }
+
+    return {
+      isDragging,
+      startX,
+      startY,
+      currentX,
+      currentY,
+      deltaX,
+      deltaY,
+      rotation,
+      opacity,
+      direction
+    };
+  }
+
+  /**
+   * Determine if swipe should be triggered
+   */
+  shouldTriggerSwipe(state: SwipeState): { triggered: boolean; action: 'pass' | 'like' | 'favorite' | null } {
+    const distance = Math.sqrt(state.deltaX * state.deltaX + state.deltaY * state.deltaY);
+
+    if (distance < this.config.threshold) {
+      return { triggered: false, action: null };
+    }
+
+    // Determine action based on direction
+    if (Math.abs(state.deltaX) > Math.abs(state.deltaY)) {
+      // Horizontal swipe
+      if (state.deltaX < -this.config.threshold) {
+        return { triggered: true, action: 'pass' };
+      } else if (state.deltaX > this.config.threshold) {
+        return { triggered: true, action: 'like' };
+      }
+    } else {
+      // Vertical swipe
+      if (state.deltaY < -this.config.threshold) {
+        return { triggered: true, action: 'favorite' };
+      }
+    }
+
+    return { triggered: false, action: null };
+  }
+
+  /**
+   * Get transform CSS for card based on swipe state
+   */
+  getCardTransform(state: SwipeState): string {
+    if (!state.isDragging && state.deltaX === 0 && state.deltaY === 0) {
+      return 'translate(0, 0) rotate(0deg)';
+    }
+
+    return `translate(${state.deltaX}px, ${state.deltaY}px) rotate(${state.rotation}deg)`;
+  }
+
+  /**
+   * Get overlay label based on direction
+   */
+  getOverlayLabel(direction: SwipeState['direction']): { text: string; class: string } | null {
+    switch (direction) {
+      case 'left':
+        return { text: 'PASS', class: 'pass' };
+      case 'right':
+        return { text: 'LIKE', class: 'like' };
+      case 'up':
+        return { text: 'FAVORITE', class: 'favorite' };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(config: Partial<SwipeConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): SwipeConfig {
+    return { ...this.config };
+  }
+}
+
+```
+
+## File: src\app\app.config.server.ts
+```ts
+import { mergeApplicationConfig, ApplicationConfig } from '@angular/core';
+import { provideServerRendering, withRoutes } from '@angular/ssr';
+import { appConfig } from './app.config';
+import { serverRoutes } from './app.routes.server';
+
+const serverConfig: ApplicationConfig = {
+  providers: [
+    provideServerRendering(withRoutes(serverRoutes))
+  ]
+};
+
+export const config = mergeApplicationConfig(appConfig, serverConfig);
+
+```
+
+## File: src\app\app.config.ts
+```ts
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideAnimations } from '@angular/platform-browser/animations';
+
+import { routes } from './app.routes';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideZonelessChangeDetection(),
+    provideRouter(routes),
+    provideClientHydration(withEventReplay()),
+    provideAnimations()
+  ]
+};
+
+```
+
+## File: src\app\app.html
+```html
+<router-outlet></router-outlet>
+
+
+
+
+```
+
+## File: src\app\app.routes.server.ts
+```ts
+import { RenderMode, ServerRoute } from '@angular/ssr';
+
+export const serverRoutes: ServerRoute[] = [
+  {
+    path: '**',
+    renderMode: RenderMode.Prerender
+  }
+];
+
+```
+
+## File: src\app\app.routes.ts
+```ts
+import { Routes } from '@angular/router';
+import { authGuard } from './guards/auth.guard';
+
+export const routes: Routes = [
+  {
+    path: '',
+    redirectTo: '/welcome',
+    pathMatch: 'full'
+  },
+  {
+    path: 'sign-in',
+    loadComponent: () => import('./pages/sign-in/sign-in').then(m => m.SignIn)
+  },
+  {
+    path: 'welcome',
+    loadComponent: () => import('./pages/welcome/welcome').then(m => m.Welcome)
+  },
+  {
+    path: 'register-dog',
+    loadComponent: () => import('./pages/register-dog/register-dog').then(m => m.RegisterDog),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./pages/profile-home/profile-home').then(m => m.ProfileHome),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'match-preferences',
+    loadComponent: () => import('./pages/match-preferences/match-preferences').then(m => m.MatchPreferences),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'match',
+    loadComponent: () => import('./pages/match-swipe/match-swipe').then(m => m.MatchSwipe),
+    canActivate: [authGuard]
+  },
+  {
+    path: '**',
+    redirectTo: '/welcome'
+  }
+];
+
+```
+
+## File: src\app\app.scss
+```scss
+
+```
+
+## File: src\app\app.spec.ts
+```ts
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { App } from './app';
+
+describe('App', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [provideZonelessChangeDetection()]
+    }).compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
+
+  it('should render title', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, pawmatch');
+  });
+});
+
+```
+
+## File: src\app\app.ts
+```ts
+import { Component, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet],
+  templateUrl: './app.html',
+  styleUrl: './app.scss'
+})
+export class App {
+  protected readonly title = signal('pawmatch');
+}
+
+```
+
+## File: src\styles\tokens.scss
+```scss
+// PawMatch Design Tokens
+// Primary Colors
+$primary-orange: #F6A51F;
+$primary-dark-orange: #FF8A00;
+$primary-light: #FFF5E6;
+
+// Neutral Colors
+$neutral-dark: #2C2C2C;
+$neutral-medium: #666666;
+$neutral-light: #F5F5F5;
+$neutral-white: #FFFFFF;
+
+// Semantic Colors
+$success: #4CAF50;
+$error: #F44336;
+$warning: #FF9800;
+$info: #2196F3;
+
+// Swipe Action Colors
+$like-color: #4CAF50;
+$pass-color: #F44336;
+$favorite-color: #FF8A00;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// Border Radius
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-full: 9999px;
+
+// Shadows
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+$shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
+$shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.2);
+
+// Typography
+$font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-base: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 24px;
+$font-size-xxl: 32px;
+
+// Transitions
+$transition-fast: 150ms ease;
+$transition-base: 300ms ease;
+$transition-slow: 500ms ease;
+
+// Z-index
+$z-index-modal: 1000;
+$z-index-overlay: 900;
+$z-index-dropdown: 800;
+$z-index-header: 100;
+
+```
+
+## File: src\index.html
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Pawmatch</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
+
+```
+
+## File: src\main.server.ts
+```ts
+import { BootstrapContext, bootstrapApplication } from '@angular/platform-browser';
+import { App } from './app/app';
+import { config } from './app/app.config.server';
+
+const bootstrap = (context: BootstrapContext) =>
+    bootstrapApplication(App, config, context);
+
+export default bootstrap;
+
+```
+
+## File: src\main.ts
+```ts
+import { bootstrapApplication } from '@angular/platform-browser';
+import { appConfig } from './app/app.config';
+import { App } from './app/app';
+
+bootstrapApplication(App, appConfig)
+  .catch((err) => console.error(err));
+
+```
+
+## File: src\server.ts
+```ts
+import {
+  AngularNodeAppEngine,
+  createNodeRequestHandler,
+  isMainModule,
+  writeResponseToNodeResponse,
+} from '@angular/ssr/node';
+import express from 'express';
+import { join } from 'node:path';
+
+const browserDistFolder = join(import.meta.dirname, '../browser');
+
+const app = express();
+const angularApp = new AngularNodeAppEngine();
+
+/**
+ * Example Express Rest API endpoints can be defined here.
+ * Uncomment and define endpoints as necessary.
+ *
+ * Example:
+ * ```ts
+ * app.get('/api/{*splat}', (req, res) => {
+ *   // Handle API request
+ * });
+ * ```
+ */
+
+/**
+ * Serve static files from /browser
+ */
+app.use(
+  express.static(browserDistFolder, {
+    maxAge: '1y',
+    index: false,
+    redirect: false,
+  }),
+);
+
+/**
+ * Handle all other requests by rendering the Angular application.
+ */
+app.use((req, res, next) => {
+  angularApp
+    .handle(req)
+    .then((response) =>
+      response ? writeResponseToNodeResponse(response, res) : next(),
+    )
+    .catch(next);
+});
+
+/**
+ * Start the server if this module is the main entry point, or it is ran via PM2.
+ * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
+ */
+if (isMainModule(import.meta.url) || process.env['pm_id']) {
+  const port = process.env['PORT'] || 4000;
+  app.listen(port, (error) => {
+    if (error) {
+      throw error;
+    }
+
+    console.log(`Node Express server listening on http://localhost:${port}`);
+  });
+}
+
+/**
+ * Request handler used by the Angular CLI (for dev-server and during build) or Firebase Cloud Functions.
+ */
+export const reqHandler = createNodeRequestHandler(app);
+
+```
+
+## File: src\styles.scss
+```scss
+@use '@angular/material' as mat;
+
+// Define custom PawMatch theme with orange colors
+$theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$orange-palette,
+    tertiary: mat.$blue-palette,
+  ),
+  typography: (
+    brand-family: 'Roboto, "Helvetica Neue", sans-serif',
+    plain-family: 'Roboto, "Helvetica Neue", sans-serif',
+  ),
+  density: (
+    scale: 0
+  )
+));
+
+html {
+  @include mat.theme($theme);
+
+  // Custom color overrides for PawMatch branding
+  --primary-orange: #F6A51F;
+  --primary-dark-orange: #FF8A00;
+  --primary-light: #FFF5E6;
+  --neutral-dark: #2C2C2C;
+  --neutral-medium: #666666;
+  --neutral-light: #F5F5F5;
+  --like-color: #4CAF50;
+  --pass-color: #F44336;
+  --favorite-color: #FF8A00;
+}
+
+body {
+  color-scheme: light;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+  margin: 0;
+}
+
+/* Global Styles */
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Utility Classes */
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-sm { margin-top: 8px; }
+.mt-md { margin-top: 16px; }
+.mt-lg { margin-top: 24px; }
+.mt-xl { margin-top: 32px; }
+
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 16px; }
+.mb-lg { margin-bottom: 24px; }
+.mb-xl { margin-bottom: 32px; }
+
+/* Button Overrides */
+.mat-mdc-button, .mat-mdc-raised-button, .mat-mdc-fab {
+  border-radius: 9999px !important;
+}
+
+/* Card Styles */
+.mat-mdc-card {
+  border-radius: 16px !important;
+}
+
+/* Input Styles */
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes swipeOut {
+  to {
+    transform: translateX(150%) rotate(30deg);
+    opacity: 0;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F5F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #666666;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2C2C2C;
+}
+
+/* Match Snackbar Styles */
+.match-snackbar {
+  .mdc-snackbar__surface {
+    background: linear-gradient(135deg, #F6A51F 0%, #FF8A00 100%) !important;
+    box-shadow: 0 8px 24px rgba(246, 165, 31, 0.4) !important;
+  }
+
+  .mdc-snackbar__label {
+    color: white !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+  }
+
+  .mat-mdc-snack-bar-action {
+    .mat-mdc-button {
+      color: white !important;
+      font-weight: 600 !important;
+
+      &::before {
+        background-color: rgba(255, 255, 255, 0.2) !important;
+      }
+    }
+  }
+}
+
+/* Mat-Select Panel Background */
+.mat-mdc-select-panel {
+  background: white !important;
+}
+
+/* Mat-Autocomplete Panel Background */
+.mat-mdc-autocomplete-panel {
+  background: white !important;
+}
+
+/* Mat-Select Selected Option */
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  background-color: #FFF5E6 !important;
+
+  .mdc-list-item__primary-text {
+    color: #F6A51F !important;
+    font-weight: 600 !important;
+  }
+}
+
+.mat-mdc-option:hover:not(.mdc-list-item--disabled) {
+  background-color: #FFF5E6 !important;
+}
+
+/* Mat-Error Styles */
+mat-error {
+  color: #F44336 !important;
+  font-size: 10px !important;
+}
+
+/* Notifications Bottom Sheet */
+.notifications-bottom-sheet {
+  .mat-bottom-sheet-container {
+    padding: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
+  }
+}
+
+```
