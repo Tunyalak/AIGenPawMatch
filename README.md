@@ -6,11 +6,20 @@ A mobile-first Tinder-like app for connecting dogs and their owners for playdate
 
 - **5 Main Screens**:
 
-  - 🔐 Sign In - Email/password and social authentication
+  - 🔐 Sign In - Email/password, Google OAuth, and Microsoft Azure AD authentication
   - 👋 Welcome - Onboarding with feature highlights
   - 📝 Register Dog - Multi-step reactive form with validations
   - 👤 Profile - User and dog profile management
   - ❤️ Match & Swipe - Tinder-style dog matching with smooth animations
+
+- **Authentication & Security**:
+
+  - Email/password authentication
+  - Google Sign-In (OAuth 2.0)
+  - Microsoft Sign-In (Azure AD)
+  - Session timeout (1 hour auto-logout)
+  - Auto-redirect for logged-in users
+  - Secure token management
 
 - **Swipe Mechanics**:
 
@@ -32,11 +41,15 @@ A mobile-first Tinder-like app for connecting dogs and their owners for playdate
 - **Technical Highlights**:
   - Angular 20 with standalone components
   - Signals for reactive state management
+  - Zoneless change detection (no Zone.js)
+  - OAuth 2.0 integration (Google & Microsoft)
+  - Session management with auto-expiration
   - Angular Material with custom PawMatch theme (#F6A51F / #FF8A00)
   - Mock API with 20 seed dogs
   - LocalStorage persistence
   - Responsive mobile-first design
   - Route guards for authentication
+  - Auto-redirect for authenticated users
 
 ## 📸 Screenshots
 
@@ -60,6 +73,9 @@ A mobile-first Tinder-like app for connecting dogs and their owners for playdate
   Email: demo@pawmatch.com
   Password: password123
   ```
+  Or sign in with:
+  - ✅ Google Account (OAuth)
+  - ✅ Microsoft Account (Azure AD)
 
 ## �🚀 Quick Start
 
@@ -163,11 +179,26 @@ npm test
 
 The app uses localStorage for persistence. No backend configuration needed for local development.
 
+### OAuth Setup
+
+**Google Sign-In:**
+
+- See [GOOGLE-SIGNIN-SETUP.md](./GOOGLE-SIGNIN-SETUP.md) for complete setup guide
+- Requires Google Cloud Console configuration
+- Client ID configured in `src/app/pages/sign-in/sign-in.ts`
+
+**Microsoft Sign-In:**
+
+- Requires Azure AD app registration
+- Configure redirect URIs in Azure Portal
+- Client ID and Tenant ID in `sign-in.ts`
+
 ### Customization
 
 - **Theme colors**: Edit `src/styles.scss`
 - **Design tokens**: Edit `src/styles/tokens.scss`
 - **Mock data**: Edit `src/app/services/mock-dog.ts`
+- **Session timeout**: Edit `expiresAt` in `src/app/services/auth.ts` (default: 1 hour)
 
 ## 📱 Responsive Design
 
@@ -251,6 +282,7 @@ This project is for demonstration purposes.
 - [AI Workflow Documentation](./AI-WORKFLOW.md)
 - [Development Lessons Learned](./LESSONS-LEARNED.md)
 - [Challenge Validation Report](./CHALLENGE-VALIDATION.md)
+- [Google/Microsoft Sign-In Setup Guide](./GOOGLE-SIGNIN-SETUP.md)
 - [GitHub Repository](https://github.com/Tunyalak/AIGenPawMatch)
 - [Live Demo](https://pawmatch.azurewebsites.net)
 

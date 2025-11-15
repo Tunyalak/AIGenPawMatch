@@ -1,5 +1,20 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from './services/auth';
+
+// Auto-redirect guard: if logged in, go to match page
+const autoRedirectGuard = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (authService.checkAuth()) {
+    router.navigate(['/match']);
+    return false;
+  }
+  return true;
+};
 
 export const routes: Routes = [
   {
@@ -9,11 +24,13 @@ export const routes: Routes = [
   },
   {
     path: 'sign-in',
-    loadComponent: () => import('./pages/sign-in/sign-in').then(m => m.SignIn)
+    loadComponent: () => import('./pages/sign-in/sign-in').then(m => m.SignIn),
+    canActivate: [autoRedirectGuard]
   },
   {
     path: 'welcome',
-    loadComponent: () => import('./pages/welcome/welcome').then(m => m.Welcome)
+    loadComponent: () => import('./pages/welcome/welcome').then(m => m.Welcome),
+    canActivate: [autoRedirectGuard]
   },
   {
     path: 'register-dog',

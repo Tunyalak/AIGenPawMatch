@@ -738,6 +738,7 @@ it('should update count', () => {
 2. **Testing:** Increase unit test coverage
 3. **Performance:** Lighthouse audit
 4. **Animations:** More micro-interactions
+5. **OAuth Security:** Backend token validation
 
 ### Features
 
@@ -746,6 +747,55 @@ it('should update count', () => {
 3. Advanced matching algorithm
 4. Photo upload
 5. Real backend API
+6. OAuth profile picture integration
+7. Social sharing capabilities
+
+---
+
+## 🔐 Authentication & Security Insights
+
+### OAuth Integration
+
+**What We Built:**
+
+- Google Sign-In (OAuth 2.0)
+- Microsoft Sign-In (Azure AD)
+- Session management with auto-expiration (1 hour)
+- Auto-redirect for authenticated users
+
+**Key Learnings:**
+
+✅ **What Worked Well:**
+
+- AI generated OAuth flow quickly (85% completion)
+- Signal-based auth state is cleaner than observables
+- Session timeout with `expiresAt` timestamp is simple
+- Auto-redirect guard improves UX significantly
+
+⚠️ **Challenges:**
+
+- Cross-origin popup issues required redirect approach
+- Azure AD configuration needs careful setup
+- Token validation should happen on backend (future improvement)
+
+**Best Practice:**
+
+```typescript
+// Session with expiration
+interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  expiresAt?: number; // Unix timestamp
+}
+
+// Auto-check expiration
+if (state.expiresAt && Date.now() > state.expiresAt) {
+  this.signOut(); // Automatic cleanup
+}
+```
+
+**Time Saved:** ~67% for OAuth implementation (6 hours → 2 hours)
 
 ---
 
@@ -759,6 +809,7 @@ it('should update count', () => {
 - Zoneless works in production
 - Standalone components simplify everything
 - Material v20 excellent
+- Great for modern auth patterns
 
 **Cons:**
 
@@ -774,9 +825,10 @@ it('should update count', () => {
 
 **Pros:**
 
-- Massive productivity boost (46% time saved)
+- Massive productivity boost (56% time saved)
 - Great for scaffolding and patterns
 - Excellent Angular 20 knowledge
+- OAuth integration handled smoothly
 - Debugging assistance valuable
 
 **Cons:**
@@ -785,6 +837,7 @@ it('should update count', () => {
 - Struggles with animations
 - Misses edge cases
 - Requires supervision
+- OAuth testing needs manual verification
 
 **Verdict:** **Game-changing tool** but augments rather than replaces developers.
 
@@ -797,7 +850,8 @@ it('should update count', () => {
 1. AI handles boilerplate (70-80%)
 2. Human adds expertise (20-30%)
 3. Angular 20 makes it all smooth
-4. Result: Fast, quality, modern app
+4. OAuth/Auth patterns accelerated dramatically
+5. Result: Fast, quality, modern app with enterprise features
 
 **Would I do this again?** **Absolutely.**
 
@@ -810,6 +864,8 @@ it('should update count', () => {
 - [Angular Signals Documentation](https://angular.dev/guide/signals)
 - [Angular Material v20](https://material.angular.io)
 - [GitHub Copilot Best Practices](https://github.com/features/copilot)
+- [Google OAuth 2.0 Documentation](https://developers.google.com/identity/protocols/oauth2)
+- [Microsoft Azure AD Documentation](https://docs.microsoft.com/azure/active-directory)
 - Stack Overflow (less needed with AI!)
 - Angular Discord community
 
@@ -820,6 +876,7 @@ it('should update count', () => {
 - **GitHub Copilot** - Primary AI partner
 - **Angular Team** - Amazing framework evolution
 - **Material Team** - Excellent component library
+- **Google & Microsoft** - OAuth/Azure AD documentation
 - **Community** - Support and inspiration
 
 ---

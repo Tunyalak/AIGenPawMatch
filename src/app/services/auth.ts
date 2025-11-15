@@ -48,16 +48,32 @@ export class AuthService {
   private loadAuthState(): void {
     const stored = this.storage.getItem<AuthState>(this.AUTH_KEY);
     if (stored && stored.isAuthenticated) {
-      this.authState.set(stored);
+      // Check if session has expired (1 hour = 3600000 ms)
+      if (stored.expiresAt && Date.now() > stored.expiresAt) {
+        // Session expired, clear storage
+        this.storage.removeItem(this.AUTH_KEY);
+        this.authState.set({
+          user: null,
+          token: null,
+          isAuthenticated: false
+        });
+      } else {
+        this.authState.set(stored);
+      }
     }
   }
 
   /**
-   * Save authentication state to localStorage
+   * Save authentication state to localStorage with 1-hour expiration
    */
   private saveAuthState(state: AuthState): void {
-    this.storage.setItem(this.AUTH_KEY, state);
-    this.authState.set(state);
+    // Set expiration to 1 hour from now (3600000 ms)
+    const stateWithExpiry = {
+      ...state,
+      expiresAt: Date.now() + 3600000 // 1 hour = 60 * 60 * 1000
+    };
+    this.storage.setItem(this.AUTH_KEY, stateWithExpiry);
+    this.authState.set(stateWithExpiry);
   }
 
   /**
@@ -82,6 +98,48 @@ export class AuthService {
         this.saveAuthState(authState);
         resolve({ success: true });
       }, 500); // Simulate API delay
+    });
+  }
+
+  /**
+   * Sign in with Google OAuth
+   */
+  signInWithGoogle(googleData: {
+    email: string;
+    name: string;
+    picture?: string;
+    googleId: string;
+  }): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        try {
+          const newUser: User = {
+            id: googleData.googleId,
+            email: googleData.email,
+            name: googleData.name,
+            profilePicture: googleData.picture,
+            googleId: googleData.googleId,
+            createdAt: new Date()
+          };
+
+          // Store in mock users
+          this.mockUsers.set(googleData.email, {
+            password: '', // No password for OAuth users
+            user: newUser
+          });
+
+          const authState: AuthState = {
+            user: newUser,
+            token: 'mock-jwt-token-google-' + Date.now(),
+            isAuthenticated: true
+          };
+
+          this.saveAuthState(authState);
+          resolve({ success: true });
+        } catch (error) {
+          resolve({ success: false, error: 'Google Sign-In failed' });
+        }
+      }, 500);
     });
   }
 
@@ -131,9 +189,21 @@ export class AuthService {
   }
 
   /**
-   * Check if user is authenticated (for guards)
+   * Check if user is authenticated and session is valid (for guards)
    */
   checkAuth(): boolean {
-    return this.authState().isAuthenticated;
+    const state = this.authState();
+    if (!state.isAuthenticated) {
+      return false;
+    }
+
+    // Check if session has expired
+    if (state.expiresAt && Date.now() > state.expiresAt) {
+      // Session expired, sign out
+      this.signOut();
+      return false;
+    }
+
+    return true;
   }
 }

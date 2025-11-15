@@ -33,15 +33,18 @@
         <span>With Google</span>
       </button>
 
-      <button mat-icon-button class="social-icon-btn facebook">
-        <mat-icon>facebook</mat-icon>
+      <button mat-raised-button class="microsoft-btn" (click)="signInWithMicrosoft()">
+        <mat-icon>
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#F25022" d="M11.4 11.4H2V2h9.4v9.4z"/>
+            <path fill="#7FBA00" d="M22 11.4h-9.4V2H22v9.4z"/>
+            <path fill="#00A4EF" d="M11.4 22H2v-9.4h9.4V22z"/>
+            <path fill="#FFB900" d="M22 22h-9.4v-9.4H22V22z"/>
+          </svg>
+        </mat-icon>
+        <span>With Microsoft</span>
       </button>
 
-      <button mat-icon-button class="social-icon-btn twitter">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-        </svg>
-      </button>
     </div>
 
     <!-- Divider -->

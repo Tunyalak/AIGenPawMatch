@@ -87,29 +87,37 @@ Create an Angular 20 project structure for a dog matching app using:
 ```
 Create an authentication service using Angular 20 signals with:
 - Email/password authentication
-- Social auth placeholders
+- Google OAuth 2.0 integration
+- Microsoft Azure AD integration
+- Session timeout (1 hour)
+- Auto-redirect for logged-in users
 - AuthState signal
 - Computed isAuthenticated
-- LocalStorage persistence
+- LocalStorage persistence with expiration
 ```
 
-**AI Contribution:** 80%
+**AI Contribution:** 85%
 
 - Generated `AuthService` with signals
 - Created sign-in component with reactive forms
-- Implemented route guards
+- Implemented OAuth flow for Google and Microsoft
+- Added session expiration logic
+- Implemented route guards with auto-redirect
 
 **Manual Refinement:**
 
 - Added custom validation messages
 - Improved error handling
 - Enhanced UI/UX with Material components
+- Fine-tuned OAuth redirect handling
+- Adjusted session timeout behavior
 
 **Key Learnings:**
 
 - AI excelled at generating boilerplate auth logic
-- Required manual tweaking for UX polish
+- OAuth integration required careful testing
 - Signal patterns needed explanation but worked well once understood
+- Session management with `expiresAt` timestamp was straightforward
 
 **Files Generated:**
 
@@ -117,6 +125,7 @@ Create an authentication service using Angular 20 signals with:
 - `src/app/guards/auth.guard.ts`
 - `src/app/pages/sign-in/sign-in.ts`
 - `src/app/models/auth.model.ts`
+- `src/app/app.routes.ts` (with autoRedirectGuard)
 
 ---
 
@@ -543,19 +552,21 @@ commit all files, and push
 
 ### Time Comparison (Estimated)
 
-| Task            | Manual Time  | AI-Assisted    | Time Saved |
-| --------------- | ------------ | -------------- | ---------- |
-| Project setup   | 2 hours      | 20 min         | 85%        |
-| Auth system     | 4 hours      | 1 hour         | 75%        |
-| Swipe mechanics | 8 hours      | 4 hours        | 50%        |
-| Mock data       | 3 hours      | 30 min         | 83%        |
-| Filtering       | 4 hours      | 1.5 hours      | 62%        |
-| Profile page    | 3 hours      | 1 hour         | 67%        |
-| UI polish       | 6 hours      | 4 hours        | 33%        |
-| Debugging       | 4 hours      | 3 hours        | 25%        |
-| **Total**       | **34 hours** | **15.3 hours** | **55%**    |
+| Task               | Manual Time  | AI-Assisted    | Time Saved |
+| ------------------ | ------------ | -------------- | ---------- |
+| Project setup      | 2 hours      | 20 min         | 85%        |
+| Auth system        | 4 hours      | 1 hour         | 75%        |
+| Swipe mechanics    | 8 hours      | 4 hours        | 50%        |
+| Mock data          | 3 hours      | 30 min         | 83%        |
+| Filtering          | 4 hours      | 1.5 hours      | 62%        |
+| Profile page       | 3 hours      | 1 hour         | 67%        |
+| OAuth integration  | 6 hours      | 2 hours        | 67%        |
+| Session management | 2 hours      | 30 min         | 75%        |
+| UI polish          | 6 hours      | 4 hours        | 33%        |
+| Debugging          | 4 hours      | 3 hours        | 25%        |
+| **Total**          | **42 hours** | **18.3 hours** | **56%**    |
 
-**Overall Time Saved: ~55%**
+**Overall Time Saved: ~56%**
 
 ---
 
@@ -612,15 +623,15 @@ commit all files, and push
 
 ## 📝 Conclusion
 
-AI-assisted development proved highly effective for PawMatch, reducing development time by approximately **55%** while maintaining code quality. The key to success was:
+AI-assisted development proved highly effective for PawMatch, reducing development time by approximately **56%** while maintaining code quality. The key to success was:
 
 1. **Clear, specific prompts**
 2. **Iterative refinement**
 3. **Human oversight for UX**
-4. **Leveraging AI strengths** (boilerplate, patterns)
-5. **Manual work where needed** (animations, polish)
+4. **Leveraging AI strengths** (boilerplate, patterns, OAuth integration)
+5. **Manual work where needed** (animations, polish, testing)
 
-This workflow demonstrates that AI is a powerful **augmentation tool** rather than a replacement for developer expertise. The combination of AI efficiency and human creativity produced a polished, production-ready application in significantly less time than traditional development.
+This workflow demonstrates that AI is a powerful **augmentation tool** rather than a replacement for developer expertise. The combination of AI efficiency and human creativity produced a polished, production-ready application with advanced features (OAuth, session management) in significantly less time than traditional development.
 
 ---
 
